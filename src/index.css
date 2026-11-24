@@ -1,33 +1,62 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: "Cairo", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-edkawi-orange: #FF6B00;
-  --color-edkawi-orange-hover: #E55F00;
-  --color-edkawi-navy: #1E293B;
-  --color-edkawi-navy-deep: #0F172A;
+  --color-edkawi-turquoise: #46D5D4;
+  --color-edkawi-turquoise-hover: #2EC4C3;
+  --color-edkawi-orange: #FF7100;
+  --color-edkawi-orange-hover: #E66600;
+  --color-edkawi-slate: #1E293B;
+  --color-edkawi-obsidian: #0F172A;
 }
 
 :root {
-  --primary: #FF6B00;
-  --primary-hover: #E55F00;
+  --primary: #46D5D4;
+  --primary-hover: #2EC4C3;
+  --primary-ink: #0F172A;
+  --secondary: #1E293B;
+  --bg-canvas: #FFFFFF;
+  --bg-surface: #F8FAFC;
+  --bg-surface-muted: #F1F5F9;
+  --bg-header-glass: rgba(255, 255, 255, 0.86);
+  --bg-bottom-glass: rgba(255, 255, 255, 0.92);
+  --text-main: #1E293B;
+  --text-primary: #1E293B;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --border-subtle: #E2E8F0;
+  --brand-orange: #FF7100;
+  --brand-orange-hover: #E66600;
+  --brand-navy: #1E293B;
+  --skeleton-base: #F1F5F9;
+  --skeleton-shine: #E2E8F0;
+  --luxury-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.10), 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+  color-scheme: light;
+}
+
+.dark {
+  --primary: #46D5D4;
+  --primary-hover: #2EC4C3;
+  --primary-ink: #0F172A;
   --secondary: #1E293B;
   --bg-canvas: #0F172A;
   --bg-surface: #1E293B;
-  --bg-surface-muted: #0F172A;
-  --bg-header-glass: rgba(15, 23, 42, 0.96);
-  --bg-bottom-glass: rgba(15, 23, 42, 0.96);
+  --bg-surface-muted: #162033;
+  --bg-header-glass: rgba(15, 23, 42, 0.86);
+  --bg-bottom-glass: rgba(15, 23, 42, 0.92);
   --text-main: #F8FAFC;
   --text-primary: #F8FAFC;
   --text-secondary: #E2E8F0;
   --text-muted: #94A3B8;
   --border-subtle: #334155;
-  --brand-orange: #FF6B00;
-  --brand-orange-hover: #E55F00;
+  --brand-orange: #FF7100;
+  --brand-orange-hover: #E66600;
   --brand-navy: #1E293B;
   --skeleton-base: #1E293B;
   --skeleton-shine: #334155;
+  --luxury-shadow: 0 16px 40px -12px rgba(2, 6, 23, 0.55), 0 4px 12px -2px rgba(2, 6, 23, 0.3);
   color-scheme: dark;
 }
 
@@ -94,21 +123,21 @@
 
 .edkawi-btn-primary {
   background-color: var(--primary);
-  color: #F8FAFC;
+  color: var(--primary-ink);
 }
 
 .edkawi-btn-primary:hover:not(:disabled) {
   background-color: var(--primary-hover);
-  color: #F8FAFC;
+  color: var(--primary-ink);
 }
 
 .edkawi-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .edkawi-toast-layer {
@@ -117,30 +146,26 @@
 
 .edkawi-glass-header {
   background: var(--bg-header-glass);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--border-subtle);
-  box-shadow: 0 4px 24px -6px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--luxury-shadow);
 }
 
 .edkawi-soft-card {
-  border-radius: 16px;
+  border-radius: 20px;
   background-color: var(--bg-surface);
   color: var(--text-main);
   border: 1px solid var(--border-subtle);
-  box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.35),
-    0 2px 8px -2px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--luxury-shadow);
 }
 
 .edkawi-soft-card-interactive {
-  border-radius: 16px;
+  border-radius: 20px;
   background-color: var(--bg-surface);
   color: var(--text-main);
   border: 1px solid var(--border-subtle);
-  box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.35),
-    0 2px 8px -2px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--luxury-shadow);
   transition:
     transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -150,18 +175,18 @@
 
 .edkawi-soft-card-interactive:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 107, 0, 0.55);
+  border-color: rgba(70, 213, 212, 0.7);
   box-shadow:
-    0 18px 36px -12px rgba(0, 0, 0, 0.45),
-    0 6px 16px -4px rgba(255, 107, 0, 0.16);
+    0 20px 40px -14px rgba(15, 23, 42, 0.22),
+    0 8px 20px -6px rgba(70, 213, 212, 0.2);
 }
 
 .edkawi-sticky-bottom {
   background: var(--bg-bottom-glass);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-top: 1px solid var(--border-subtle);
-  box-shadow: 0 -10px 32px -8px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--luxury-shadow);
 }
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
@@ -174,7 +199,7 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: #94A3B8;
+  color: var(--text-muted);
 }
 
 /* Keep Google Maps InfoWindow legible on its white card */
@@ -260,4 +285,3 @@ textarea::placeholder {
     background: #ffffff !important;
   }
 }
-

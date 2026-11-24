@@ -17,6 +17,7 @@ import {
   initializeFirestore,
   setLogLevel as setFirestoreLogLevel,
 } from 'firebase/firestore';
+import { getPerformance, trace, type FirebasePerformance } from 'firebase/performance';
 import firebaseConfig from '../firebase-applet-config.json';
 import { FirestoreErrorInfo, OperationType } from './types/edkawi';
 
@@ -25,6 +26,42 @@ export const firebaseClientConfig = firebaseConfig;
 export const app =
   getApps().find((existing) => existing.name === '[DEFAULT]') ??
   initializeApp(firebaseConfig);
+
+let cachedPerformance: FirebasePerformance | null = null;
+if (typeof window !== 'undefined') {
+  try {
+    cachedPerformance = getPerformance(app);
+  } catch {
+    cachedPerformance = null;
+  }
+}
+
+export const performance = cachedPerformance;
+
+export async function tracePerformanceOperation<T>(
+  traceName: string,
+  operation: () => Promise<T>
+): Promise<T> {
+  if (!cachedPerformance || typeof window === 'undefined') {
+    return operation();
+  }
+  let perfTrace: ReturnType<typeof trace> | null = null;
+  try {
+    perfTrace = trace(cachedPerformance, traceName);
+    perfTrace.start();
+  } catch {
+    perfTrace = null;
+  }
+  try {
+    return await operation();
+  } finally {
+    try {
+      perfTrace?.stop();
+    } catch {
+      // Ignore trace stop failure
+    }
+  }
+}
 
 if (typeof window !== 'undefined') {
   const recaptchaSiteKey = (

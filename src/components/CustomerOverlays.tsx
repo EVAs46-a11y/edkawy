@@ -1,20 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Camera,
+  ChatCircleDots,
+  PaperPlaneTilt,
+  Receipt,
+  ShoppingBag,
+  Sparkle,
+  Storefront,
+  Trash,
+  UserCircle,
+} from '@phosphor-icons/react';
 import {
   Bell,
-  Bot,
   CheckCheck,
-  ClipboardList,
   Coins,
   Loader2,
   MapPin,
   Megaphone,
   Phone,
-  Send,
-  ShoppingBag,
-  Sparkles,
   Star,
   Store,
-  User as UserIcon,
   UtensilsCrossed,
   X,
 } from 'lucide-react';
@@ -39,6 +45,7 @@ import {
   ReviewSubmitInput,
   StoreRecord,
 } from '../types/edkawi';
+import { compressDeviceImageToDataUrl } from '../utils/imageUpload';
 import { EDKU_NEIGHBORHOODS, formatAppErrorMessage } from '../utils/orderLogic';
 import { EdkuLocationPickerMap } from './EdkuGoogleMaps';
 import { EmptyState } from './EmptyState';
@@ -63,44 +70,65 @@ export const CustomerBottomNav: React.FC<CustomerBottomNavProps> = ({
   const navItems: {
     id: ActiveTab;
     label: string;
-    icon: React.FC<{ className?: string }>;
+    renderIcon: (active: boolean) => React.ReactNode;
     badge?: number;
   }[] = [
-    { id: 'stores', label: 'المتاجر', icon: Store },
-    { id: 'cart', label: 'السلة', icon: ShoppingBag, badge: cartCount },
+    {
+      id: 'stores',
+      label: 'المتاجر',
+      renderIcon: (active) => (
+        <Storefront weight={active ? 'fill' : 'duotone'} className="w-5 h-5" />
+      ),
+    },
+    {
+      id: 'cart',
+      label: 'السلة',
+      renderIcon: (active) => (
+        <ShoppingBag weight={active ? 'fill' : 'duotone'} className="w-5 h-5" />
+      ),
+      badge: cartCount,
+    },
     {
       id: 'orders',
       label: 'طلباتي',
-      icon: ClipboardList,
+      renderIcon: (active) => (
+        <Receipt weight={active ? 'fill' : 'duotone'} className="w-5 h-5" />
+      ),
       badge: activeOrdersCount,
     },
-    { id: 'account', label: 'حسابي', icon: UserIcon },
+    {
+      id: 'account',
+      label: 'حسابي',
+      renderIcon: (active) => (
+        <UserCircle weight={active ? 'fill' : 'duotone'} className="w-5 h-5" />
+      ),
+    },
   ];
 
   return (
     <nav
       dir="rtl"
       aria-label="التنقل السفلي للعميل"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 h-16 bg-[#0F172A]/95 backdrop-blur-md border-t border-[#334155] grid grid-cols-4 items-center px-2"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 h-16 edkawi-glass-header border-t border-slate-200/80 dark:border-[#334155]/90 grid grid-cols-4 items-center px-2"
     >
       {navItems.map((item) => {
-        const Icon = item.icon;
         const isActive = activeTab === item.id;
         return (
-          <button
+          <motion.button
             key={item.id}
+            whileTap={{ scale: 0.92 }}
             type="button"
             onClick={() => onSelectTab(item.id)}
             className={`min-h-[44px] flex flex-col items-center justify-center relative rounded-2xl transition-colors cursor-pointer ${
               isActive
-                ? 'text-[#FF6B00] font-bold'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'text-[#0F766E] dark:text-[#46D5D4] font-extrabold'
+                : 'text-slate-500 dark:text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-[#1E293B] dark:text-[#F8FAFC]'
             }`}
           >
             <div className="relative">
-              <Icon className="w-5 h-5" />
+              {item.renderIcon(isActive)}
               {typeof item.badge === 'number' && item.badge > 0 && (
-                <span className="absolute -top-1.5 -left-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF6B00] text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+                <span className="absolute -top-1.5 -left-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF7100] text-white text-[10px] font-bold flex items-center justify-center tabular-nums shadow-sm">
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}
@@ -108,7 +136,7 @@ export const CustomerBottomNav: React.FC<CustomerBottomNavProps> = ({
             <span className="text-[11px] mt-1 tracking-tight whitespace-nowrap">
               {item.label}
             </span>
-          </button>
+          </motion.button>
         );
       })}
     </nav>
@@ -148,17 +176,17 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
     >
       <aside
         aria-label="الإشعارات"
-        className="w-full max-w-md h-full bg-[#1E293B] border-r border-[#334155] shadow-2xl flex flex-col"
+        className="w-full max-w-md h-full bg-white dark:bg-[#1E293B] border-r border-slate-200 dark:border-[#334155] shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-[#334155] flex items-center justify-between gap-3 bg-[#0F172A]/60">
+        <div className="px-5 py-4 border-b border-slate-200 dark:border-[#334155] flex items-center justify-between gap-3 bg-slate-50 dark:bg-[#0F172A]/60">
           <div className="flex items-center gap-2.5">
-            <Bell className="w-5 h-5 text-[#FF6B00]" />
-            <h2 className="text-base font-bold text-[#F8FAFC]">
+            <Bell className="w-5 h-5 text-[#FF7100]" />
+            <h2 className="text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
               إشعارات إدكاوي
             </h2>
             {unreadCount > 0 && (
-              <span className="text-xs text-[#FF6B00] font-bold tabular-nums">
+              <span className="text-xs text-[#FF7100] font-bold tabular-nums">
                 ({unreadCount} جديد)
               </span>
             )}
@@ -168,7 +196,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
               <button
                 type="button"
                 onClick={onMarkAllRead}
-                className="min-h-[38px] px-3 py-1.5 rounded-2xl text-xs font-semibold text-[#94A3B8] hover:text-[#FF6B00] inline-flex items-center gap-1 cursor-pointer"
+                className="min-h-[38px] px-3 py-1.5 rounded-2xl text-xs font-semibold text-slate-500 dark:text-[#94A3B8] hover:text-[#FF7100] inline-flex items-center gap-1 cursor-pointer"
               >
                 <CheckCheck className="w-4 h-4" />
                 <span>تحديد الكل كمقروء</span>
@@ -178,14 +206,14 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
               type="button"
               onClick={onClose}
               aria-label="إغلاق الإشعارات"
-              className="min-h-[40px] min-w-[40px] rounded-2xl border border-[#334155] bg-[#0F172A] flex items-center justify-center text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
+              className="min-h-[40px] min-w-[40px] rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] flex items-center justify-center text-slate-500 dark:text-[#94A3B8] hover:text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-[#334155]">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-[#334155]">
           {notifications.length === 0 ? (
             <div className="p-6">
               <EmptyState
@@ -226,35 +254,35 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
                   }}
                   className={`w-full text-right px-5 py-4 transition-colors flex flex-col gap-1.5 cursor-pointer ${
                     notif.isRead
-                      ? 'bg-[#1E293B] hover:bg-[#0F172A]/70'
-                      : 'bg-[#FF6B00]/10 hover:bg-[#FF6B00]/15'
+                      ? 'bg-white dark:bg-[#1E293B] hover:bg-slate-50 dark:bg-[#0F172A]/70'
+                      : 'bg-[#FF7100]/10 hover:bg-[#FF7100]/15'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       {isAdminBroadcast && (
-                        <Megaphone className="w-3.5 h-3.5 text-[#FF6B00] shrink-0" />
+                        <Megaphone className="w-3.5 h-3.5 text-[#FF7100] shrink-0" />
                       )}
-                      <span className="text-sm font-bold text-[#F8FAFC] truncate">
+                      <span className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] truncate">
                         {notif.title}
                       </span>
                     </div>
-                    <span className="text-[11px] text-[#94A3B8] tabular-nums shrink-0">
+                    <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] tabular-nums shrink-0">
                       {formattedTime}
                     </span>
                   </div>
                   {isAdminBroadcast && (
-                    <span className="text-[11px] font-semibold text-[#FF6B00]">
+                    <span className="text-[11px] font-semibold text-[#FF7100]">
                       {notif.type === 'promo'
                         ? 'عرض ومكافآت إدكاوي'
                         : 'تنبيه من إدارة إدكاوي'}
                     </span>
                   )}
-                  <p className="text-xs text-[#94A3B8] leading-relaxed">
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8] leading-relaxed">
                     {notif.body}
                   </p>
                   {notif.orderId && (
-                    <span className="text-[11px] font-semibold text-[#FF6B00] pt-0.5">
+                    <span className="text-[11px] font-semibold text-[#FF7100] pt-0.5">
                       عرض تفاصيل الطلب ←
                     </span>
                   )}
@@ -332,12 +360,12 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
       dir="rtl"
       className="edkawi-modal-backdrop flex items-center justify-center p-4 overflow-y-auto"
     >
-      <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl bg-[#1E293B] border border-[#334155] shadow-2xl p-6 space-y-5 my-auto">
+      <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] shadow-2xl p-6 space-y-5 my-auto">
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-[#F8FAFC]">
+          <h2 className="text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC]">
             إكمال بيانات حسابك في إدكاوي
           </h2>
-          <p className="text-xs text-[#94A3B8] leading-relaxed">
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8] leading-relaxed">
             أهلاً بك ({userEmail})! حدد موقعك الافتراضي على خريطة مدينة إدكو وأضف
             رقم الموبايل لتسريع توصيل طلباتك.
           </p>
@@ -352,7 +380,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#F8FAFC] mb-1">
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-[#F8FAFC] mb-1">
                 الاسم بالكامل
               </label>
               <input
@@ -361,16 +389,16 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="الاسم الثلاثي"
-                className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl border border-[#334155] bg-[#0F172A] text-[#F8FAFC] placeholder:text-[#94A3B8] text-sm"
+                className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-[#94A3B8] text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#F8FAFC] mb-1">
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-[#F8FAFC] mb-1">
                 رقم الموبايل المصري
               </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-[#94A3B8] absolute right-3.5 top-3.5" />
+                <Phone className="w-4 h-4 text-slate-500 dark:text-[#94A3B8] absolute right-3.5 top-3.5" />
                 <input
                   type="tel"
                   required
@@ -378,7 +406,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="01012345678"
-                  className="w-full min-h-[44px] pr-10 pl-3.5 py-2 rounded-2xl border border-[#334155] bg-[#0F172A] text-[#F8FAFC] placeholder:text-[#94A3B8] text-sm text-right tabular-nums"
+                  className="w-full min-h-[44px] pr-10 pl-3.5 py-2 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-[#94A3B8] text-sm text-right tabular-nums"
                 />
               </div>
             </div>
@@ -409,7 +437,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#F8FAFC] mb-1">
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-[#F8FAFC] mb-1">
                 المنطقة المختارة في إدكو
               </label>
               <select
@@ -421,7 +449,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
                   setLat(coords.lat);
                   setLng(coords.lng);
                 }}
-                className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl border border-[#334155] bg-[#0F172A] text-[#F8FAFC] text-sm"
+                className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] text-sm"
               >
                 {EDKU_NEIGHBORHOODS.map((area) => (
                   <option key={area} value={area}>
@@ -432,18 +460,18 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#F8FAFC] mb-1">
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-[#F8FAFC] mb-1">
                 علامة مميزة أو رقم العقار
               </label>
               <div className="relative">
-                <MapPin className="w-4 h-4 text-[#94A3B8] absolute right-3.5 top-3.5" />
+                <MapPin className="w-4 h-4 text-slate-500 dark:text-[#94A3B8] absolute right-3.5 top-3.5" />
                 <input
                   type="text"
                   required
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="بجوار مسجد... الدور الثاني"
-                  className="w-full min-h-[44px] pr-10 pl-3.5 py-2 rounded-2xl border border-[#334155] bg-[#0F172A] text-[#F8FAFC] placeholder:text-[#94A3B8] text-sm"
+                  className="w-full min-h-[44px] pr-10 pl-3.5 py-2 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-[#94A3B8] text-sm"
                 />
               </div>
             </div>
@@ -453,7 +481,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 min-h-[46px] rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm font-bold cursor-pointer"
+              className="flex-1 min-h-[46px] rounded-2xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-white text-sm font-bold cursor-pointer"
             >
               {isSubmitting ? 'جارٍ حفظ الحساب...' : 'حفظ ومتابعة التسوق'}
             </button>
@@ -461,7 +489,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
               <button
                 type="button"
                 onClick={onSkipForNow}
-                className="min-h-[46px] px-4 rounded-2xl border border-[#334155] bg-[#0F172A] text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
+                className="min-h-[46px] px-4 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-xs font-semibold text-slate-500 dark:text-[#94A3B8] hover:text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer"
               >
                 لاحقاً
               </button>
@@ -491,19 +519,19 @@ const StarRatingSelector: React.FC<{
   onChange: (rating: number) => void;
 }> = ({ label, sublabel, value, onChange }) => {
   return (
-    <div className="bg-[#0F172A] rounded-2xl p-4 space-y-2.5 border border-[#334155]">
+    <div className="bg-slate-50 dark:bg-[#0F172A] rounded-2xl p-4 space-y-2.5 border border-slate-200 dark:border-[#334155]">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-bold text-[#F8FAFC]">
+          <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
             {label}
           </p>
           {sublabel && (
-            <p className="text-xs text-[#94A3B8]">
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
               {sublabel}
             </p>
           )}
         </div>
-        <span className="text-xs font-bold text-[#FF6B00] tabular-nums">
+        <span className="text-xs font-bold text-[#FF7100] tabular-nums">
           {value} من 5
         </span>
       </div>
@@ -542,6 +570,8 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
   const [storeRating, setStoreRating] = useState(5);
   const [courierRating, setCourierRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -550,6 +580,7 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
       setStoreRating(5);
       setCourierRating(5);
       setComment('');
+      setPhotoUrls([]);
       setErrorMsg(null);
     }
   }, [order?.id]);
@@ -558,6 +589,32 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
 
   const hasCourier = Boolean(order.courierId || order.courierName);
   const isPharmacy = order.orderType === 'pharmacy_prescription';
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (files.length === 0) return;
+    if (photoUrls.length >= 3) {
+      setErrorMsg('الحد الأقصى ٣ صور للتقييم الواحد.');
+      return;
+    }
+    setErrorMsg(null);
+    setIsCompressingPhoto(true);
+    try {
+      const remaining = 3 - photoUrls.length;
+      const toProcess = files.slice(0, remaining);
+      const compressed: string[] = [];
+      for (const file of toProcess) {
+        const dataUrl = await compressDeviceImageToDataUrl(file);
+        compressed.push(dataUrl);
+      }
+      setPhotoUrls((prev) => [...prev, ...compressed].slice(0, 3));
+    } catch (err) {
+      setErrorMsg(formatAppErrorMessage(err, 'تعذر معالجة الصورة المختارة.'));
+    } finally {
+      setIsCompressingPhoto(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -576,6 +633,7 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
         storeRating,
         courierRating: hasCourier ? courierRating : undefined,
         comment: comment.trim(),
+        ...(photoUrls.length > 0 ? { photoUrls } : {}),
       });
       onClose();
     } catch (err) {
@@ -592,30 +650,30 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl bg-[#1E293B] border border-[#334155] shadow-2xl p-6 space-y-5"
+        className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] shadow-2xl p-6 space-y-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <h2 className="text-lg font-bold text-[#F8FAFC]">
+            <h2 className="text-lg font-extrabold text-[#1E293B] dark:text-[#F8FAFC]">
               تقييم تجربة الطلب بعد التوصيل
             </h2>
-            <p className="text-xs text-[#94A3B8]">
-              طلبك من {order.storeName} وصل بنجاح — شاركنا رأيك بالنجوم
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
+              طلبك من {order.storeName} وصل بنجاح — شاركنا رأيك وصورة طلبك
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="إغلاق نافذة التقييم"
-            className="min-h-[40px] min-w-[40px] rounded-2xl border border-[#334155] bg-[#0F172A] flex items-center justify-center text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
+            className="min-h-[40px] min-w-[40px] rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] flex items-center justify-center text-slate-500 dark:text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="rounded-2xl bg-red-950/60 border border-red-500/40 px-4 py-2.5 text-xs font-medium text-red-200">
+          <div className="rounded-2xl bg-rose-50 dark:bg-red-950/60 border border-rose-200 dark:border-red-500/40 px-4 py-2.5 text-xs font-medium text-rose-700 dark:text-red-200">
             {errorMsg}
           </div>
         )}
@@ -642,7 +700,7 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-[#F8FAFC] mb-1.5">
+            <label className="block text-xs font-semibold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5">
               تعليق إضافي (اختياري)
             </label>
             <textarea
@@ -651,22 +709,80 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="اكتب ملاحظتك حول جودة الطلب أو سرعة التوصيل..."
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#334155] bg-[#0F172A] text-[#F8FAFC] placeholder:text-[#94A3B8] text-sm resize-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-[#94A3B8] text-sm resize-none"
             />
+          </div>
+
+          {/* Verified Photo Review WebP Upload (Max 3 photos) */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC]">
+                صور حقيقية للطلب (اختياري · حتى ٣ صور)
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-[#94A3B8]">
+                {photoUrls.length}/3
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {photoUrls.map((url, idx) => (
+                <div
+                  key={`${idx}_${url.slice(0, 24)}`}
+                  className="relative w-20 h-20 rounded-2xl overflow-hidden border border-slate-200 dark:border-[#334155] group"
+                >
+                  <img
+                    src={url}
+                    alt={`صورة التقييم ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    aria-label="حذف الصورة"
+                    onClick={() =>
+                      setPhotoUrls((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                    className="absolute top-1 left-1 w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md cursor-pointer"
+                  >
+                    <Trash weight="bold" className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+
+              {photoUrls.length < 3 && (
+                <label className="w-20 h-20 rounded-2xl border-2 border-dashed border-[#46D5D4]/60 bg-[#46D5D4]/10 hover:bg-[#46D5D4]/15 text-[#0F766E] dark:text-[#46D5D4] flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors">
+                  {isCompressingPhoto ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Camera weight="duotone" className="w-6 h-6" />
+                      <span className="text-[10px] font-bold">إضافة صورة</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    disabled={isCompressingPhoto}
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-3 pt-1">
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="flex-1 min-h-[46px] rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm font-bold cursor-pointer"
+              disabled={isSubmitting || isCompressingPhoto}
+              className="flex-1 min-h-[46px] rounded-2xl bg-[#46D5D4] hover:bg-[#32C2C1] disabled:opacity-60 text-[#0F172A] text-sm font-extrabold cursor-pointer shadow-[0_8px_20px_rgba(70,213,212,0.28)]"
             >
               {isSubmitting ? 'جارٍ إرسال التقييم...' : 'إرسال التقييم الآن'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[46px] px-4 rounded-2xl border border-[#334155] bg-[#0F172A] text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
+              className="min-h-[46px] px-4 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-xs font-semibold text-slate-600 dark:text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer"
             >
               لاحقاً
             </button>
@@ -739,7 +855,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
     {
       id: 'welcome_edkawy_ai',
       role: 'assistant',
-      text: 'أهلاً بيك في إدكاوي يا بطل! أنا مساعدك الذكي في مدينة إدكو — اسألني عن أحسن المطاعم والصيدليات، أو اضغط «خطط لوجباتي» لأجهز لك جدول وجبات على قد ميزانيتك.',
+      text: 'أهلاً بيك في إدكاوي! اسألني عن أقرب مطعم، صيدلية، أو اضغط «خطط لوجباتي» لتجهيز جدول وجبات يناسب ميزانيتك.',
       createdAtIso: new Date().toISOString(),
     },
   ]);
@@ -903,21 +1019,22 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
     <>
       {/* Floating Launcher Button — docked cleanly above BottomNav & FloatingCartBar */}
       {!isOpen && (
-        <button
+        <motion.button
+          whileTap={{ scale: 0.94 }}
           type="button"
           onClick={() => setIsOpen(true)}
-          aria-label="مساعد إدكاوي الذكي"
+          aria-label="مساعد الطلبات في إدكاوي"
           className={`fixed ${
             hasFloatingCart
               ? 'bottom-[9.25rem] md:bottom-24'
               : 'bottom-20 md:bottom-6'
-          } right-4 sm:right-6 z-40 min-h-[44px] px-4 py-2.5 rounded-full bg-[#FF6B00] hover:bg-[#E55F00] text-white shadow-xl border border-[#334155] inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]`}
+          } right-4 sm:right-6 z-40 min-h-[44px] px-4 py-2.5 rounded-full bg-[#46D5D4] hover:bg-[#32C2C1] text-[#0F172A] shadow-[0_8px_24px_rgba(70,213,212,0.35)] border border-white/40 inline-flex items-center gap-2 cursor-pointer`}
         >
-          <Sparkles className="w-4 h-4 text-white shrink-0" />
-          <span className="text-xs sm:text-sm font-bold text-white whitespace-nowrap">
-            مساعد إدكاوي
+          <ChatCircleDots weight="duotone" className="w-4 h-4 shrink-0" />
+          <span className="text-xs sm:text-sm font-extrabold whitespace-nowrap">
+            مساعد الطلبات
           </span>
-        </button>
+        </motion.button>
       )}
 
       {/* Conversational Drawer — docked at bottom-right in RTL with z-index 1000 */}
@@ -928,24 +1045,24 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
           onClick={() => setIsOpen(false)}
         >
           <section
-            aria-label="مساعد إدكاوي الذكي"
+            aria-label="مساعد الطلبات في إدكاوي"
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:w-[410px] h-[82dvh] sm:h-[580px] max-h-[90dvh] bg-[#1E293B] rounded-t-3xl sm:rounded-2xl border border-[#334155] shadow-2xl flex flex-col overflow-hidden"
+            className="w-full sm:w-[410px] h-[82dvh] sm:h-[580px] max-h-[90dvh] bg-white dark:bg-[#1E293B] rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-[#334155] shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <header className="px-4 py-3.5 bg-[#0F172A] border-b border-[#334155] text-[#F8FAFC] flex items-center justify-between gap-3">
+            <header className="px-4 py-3.5 bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-[#FF6B00] text-white flex items-center justify-center shrink-0">
-                  <Bot className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-2xl bg-[#46D5D4] text-[#0F172A] flex items-center justify-center shrink-0">
+                  <ChatCircleDots weight="duotone" className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#F8FAFC]">
-                    مساعد إدكاوي الذكي
+                  <h3 className="text-sm font-extrabold text-[#1E293B] dark:text-[#F8FAFC]">
+                    مساعد الطلبات — إدكاوي
                   </h3>
-                  <div className="flex items-center gap-2 text-[11px] text-[#94A3B8]">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-[#94A3B8]">
                     <span>دليل المطاعم والصيدليات في إدكو</span>
                     <span>·</span>
-                    <span className="inline-flex items-center gap-1 text-[#FF6B00] font-semibold tabular-nums">
+                    <span className="inline-flex items-center gap-1 text-[#FF7100] font-semibold tabular-nums">
                       <Coins className="w-3 h-3" />
                       {points} نقطة
                     </span>
@@ -957,7 +1074,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowMealPlanner((prev) => !prev)}
-                  className="min-h-[38px] px-3 py-1.5 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="min-h-[38px] px-3 py-1.5 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   <UtensilsCrossed className="w-3.5 h-3.5" />
                   <span>خطط لوجباتي</span>
@@ -966,27 +1083,27 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                   type="button"
                   onClick={() => setIsOpen(false)}
                   aria-label="إغلاق المحادثة"
-                  className="min-h-[38px] min-w-[38px] rounded-2xl border border-[#334155] bg-[#1E293B] hover:border-[#FF6B00] text-[#F8FAFC] flex items-center justify-center cursor-pointer"
+                  className="min-h-[38px] min-w-[38px] rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] hover:border-[#46D5D4] text-[#1E293B] dark:text-[#F8FAFC] flex items-center justify-center cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </header>
 
-            {/* Inline Smart Meal Planner Form */}
+            {/* Inline Meal Planner Form */}
             {showMealPlanner && (
               <form
                 onSubmit={handleGenerateMealPlan}
-                className="p-4 bg-[#0F172A] border-b border-[#334155] space-y-3"
+                className="p-4 bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-[#334155] space-y-3"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-[#F8FAFC]">
-                    مخطط الوجبات الذكي حسب ميزانيتك في إدكو
+                  <span className="text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC]">
+                    مخطط الوجبات اليومي حسب ميزانيتك
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowMealPlanner(false)}
-                    className="text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
+                    className="text-xs font-bold text-slate-500 dark:text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer"
                   >
                     إخفاء
                   </button>
@@ -994,7 +1111,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-[11px] font-bold text-[#94A3B8] mb-1">
+                    <label className="block text-[11px] font-bold text-slate-500 dark:text-[#94A3B8] mb-1">
                       الميزانية (ج.م)
                     </label>
                     <input
@@ -1004,17 +1121,17 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                       dir="ltr"
                       value={mealBudgetEgp}
                       onChange={(e) => setMealBudgetEgp(Number(e.target.value))}
-                      className="w-full min-h-[38px] px-2.5 py-1.5 rounded-2xl border border-[#334155] bg-[#1E293B] text-xs font-mono text-[#F8FAFC] text-left"
+                      className="w-full min-h-[38px] px-2.5 py-1.5 rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] text-xs font-mono text-[#1E293B] dark:text-[#F8FAFC] text-left"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[#94A3B8] mb-1">
+                    <label className="block text-[11px] font-bold text-slate-500 dark:text-[#94A3B8] mb-1">
                       عدد الأيام
                     </label>
                     <select
                       value={mealDaysCount}
                       onChange={(e) => setMealDaysCount(Number(e.target.value))}
-                      className="w-full min-h-[38px] px-2 py-1.5 rounded-2xl border border-[#334155] bg-[#1E293B] text-xs text-[#F8FAFC]"
+                      className="w-full min-h-[38px] px-2 py-1.5 rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] text-xs text-[#1E293B] dark:text-[#F8FAFC]"
                     >
                       {[1, 2, 3, 4, 5, 6, 7].map((d) => (
                         <option key={d} value={d}>
@@ -1024,7 +1141,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[#94A3B8] mb-1">
+                    <label className="block text-[11px] font-bold text-slate-500 dark:text-[#94A3B8] mb-1">
                       النظام
                     </label>
                     <select
@@ -1034,7 +1151,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                           e.target.value as 'صحي' | 'دسم' | 'متوازن'
                         )
                       }
-                      className="w-full min-h-[38px] px-2 py-1.5 rounded-2xl border border-[#334155] bg-[#1E293B] text-xs text-[#F8FAFC]"
+                      className="w-full min-h-[38px] px-2 py-1.5 rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] text-xs text-[#1E293B] dark:text-[#F8FAFC]"
                     >
                       <option value="متوازن">متوازن</option>
                       <option value="صحي">صحي وخفيف</option>
@@ -1046,25 +1163,25 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                 <button
                   type="submit"
                   disabled={isSending}
-                  className="w-full min-h-[40px] rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-50 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full min-h-[40px] rounded-2xl bg-[#46D5D4] hover:bg-[#32C2C1] disabled:opacity-50 text-[#0F172A] text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {isSending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkle weight="duotone" className="w-3.5 h-3.5" />
                   )}
-                  <span>توليد جدول الوجبات الآن</span>
+                  <span>تجهيز جدول الوجبات الآن</span>
                 </button>
               </form>
             )}
 
             {/* Quick Suggestion Chips */}
-            <div className="px-3 py-2 border-b border-[#334155] flex items-center gap-1.5 overflow-x-auto bg-[#0F172A]/80">
+            <div className="px-3 py-2 border-b border-slate-200 dark:border-[#334155] flex items-center gap-1.5 overflow-x-auto bg-slate-50 dark:bg-[#0F172A]/80">
               <button
                 type="button"
                 disabled={isSending}
                 onClick={() => setShowMealPlanner((prev) => !prev)}
-                className="px-2.5 py-1.5 rounded-2xl bg-[#FF6B00] text-white text-[11px] font-bold whitespace-nowrap cursor-pointer shrink-0 inline-flex items-center gap-1"
+                className="px-2.5 py-1.5 rounded-2xl bg-[#FF7100] text-white text-[11px] font-bold whitespace-nowrap cursor-pointer shrink-0 inline-flex items-center gap-1"
               >
                 <UtensilsCrossed className="w-3 h-3" />
                 <span>خطط لوجباتي</span>
@@ -1075,7 +1192,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                   type="button"
                   disabled={isSending}
                   onClick={() => void sendPrompt(chip)}
-                  className="px-2.5 py-1.5 rounded-2xl bg-[#1E293B] border border-[#334155] hover:border-[#FF6B00] text-[11px] font-semibold text-[#F8FAFC] whitespace-nowrap cursor-pointer shrink-0"
+                  className="px-2.5 py-1.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] hover:border-[#FF7100] text-[11px] font-semibold text-[#1E293B] dark:text-[#F8FAFC] whitespace-nowrap cursor-pointer shrink-0"
                 >
                   {chip}
                 </button>
@@ -1083,7 +1200,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
             </div>
 
             {/* Messages Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#1E293B]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white dark:bg-[#1E293B]">
               {messages.map((msg) => {
                 const suggestedStore = msg.suggestedStoreId
                   ? stores.find((s) => s.id === msg.suggestedStoreId)
@@ -1099,8 +1216,8 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                     <div
                       className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed ${
                         msg.role === 'user'
-                          ? 'bg-[#FF6B00] text-white font-medium rounded-tr-sm'
-                          : 'bg-[#0F172A] border border-[#334155] text-[#F8FAFC] rounded-tl-sm'
+                          ? 'bg-[#FF7100] text-white font-medium rounded-tr-sm'
+                          : 'bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] rounded-tl-sm'
                       }`}
                     >
                       {msg.text}
@@ -1108,10 +1225,10 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
 
                     {/* Smart Meal Plan Daily Dish Cards with 1-Click Add to Cart */}
                     {msg.mealPlan && msg.mealPlan.days.length > 0 && (
-                      <div className="mt-2.5 w-full max-w-[94%] rounded-2xl bg-[#0F172A] border border-[#334155] p-3 space-y-2.5">
-                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-[#F8FAFC] pb-1.5 border-b border-[#334155]">
+                      <div className="mt-2.5 w-full max-w-[94%] rounded-2xl bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] p-3 space-y-2.5">
+                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] pb-1.5 border-b border-slate-200 dark:border-[#334155]">
                           <span>إجمالي الخطة المقترحة</span>
-                          <span className="text-[#FF6B00] font-mono tabular-nums">
+                          <span className="text-[#FF7100] font-mono tabular-nums">
                             {msg.mealPlan.totalEstimatedEgp} / {msg.mealPlan.budgetEgp} ج.م
                           </span>
                         </div>
@@ -1126,16 +1243,16 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                           return (
                             <div
                               key={`${day.dayNumber}_${day.productId}`}
-                              className="rounded-2xl bg-[#1E293B] border border-[#334155] p-2.5 flex items-center justify-between gap-2"
+                              className="rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-2.5 flex items-center justify-between gap-2"
                             >
                               <div className="min-w-0">
-                                <p className="text-[11px] font-bold text-[#FF6B00]">
+                                <p className="text-[11px] font-bold text-[#FF7100]">
                                   {day.dayLabelAr} · {day.storeName}
                                 </p>
-                                <p className="text-xs font-bold text-[#F8FAFC] truncate">
+                                <p className="text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] truncate">
                                   {day.productName}
                                 </p>
-                                <p className="text-[11px] text-[#94A3B8] font-mono tabular-nums">
+                                <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-mono tabular-nums">
                                   {day.priceEgp} ج.م
                                 </p>
                               </div>
@@ -1155,7 +1272,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                                       imageUrl: matchedProd?.imageUrl,
                                     });
                                   }}
-                                  className="min-h-[36px] px-3 py-1.5 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-[11px] font-bold inline-flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                                  className="min-h-[36px] px-3 py-1.5 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] text-white text-[11px] font-bold inline-flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
                                 >
                                   <ShoppingBag className="w-3 h-3" />
                                   <span>أضف للسلة</span>
@@ -1174,9 +1291,9 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                           onSelectStore(suggestedStore);
                           setIsOpen(false);
                         }}
-                        className="mt-2 max-w-[86%] px-3.5 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] hover:border-[#FF6B00] text-[#F8FAFC] text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition-colors"
+                        className="mt-2 max-w-[86%] px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] hover:border-[#FF7100] text-[#1E293B] dark:text-[#F8FAFC] text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition-colors"
                       >
-                        <Store className="w-3.5 h-3.5 text-[#FF6B00] shrink-0" />
+                        <Store className="w-3.5 h-3.5 text-[#FF7100] shrink-0" />
                         <span>فتح {suggestedStore.name} الآن ←</span>
                       </button>
                     )}
@@ -1186,7 +1303,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
 
               {isSending && (
                 <div className="flex justify-end">
-                  <div className="rounded-2xl px-4 py-2.5 bg-[#0F172A] border border-[#334155] text-xs text-[#94A3B8]">
+                  <div className="rounded-2xl px-4 py-2.5 bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-[#334155] text-xs text-slate-500 dark:text-[#94A3B8]">
                     جارٍ كتابة الرد من مساعد إدكاوي...
                   </div>
                 </div>
@@ -1201,7 +1318,7 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                 e.preventDefault();
                 void sendPrompt(inputText);
               }}
-              className="p-3 border-t border-[#334155] flex items-center gap-2 bg-[#0F172A]"
+              className="p-3 border-t border-slate-200 dark:border-[#334155] flex items-center gap-2 bg-slate-50 dark:bg-[#0F172A]"
             >
               <input
                 type="text"
@@ -1209,15 +1326,15 @@ export const EdkawyAiChatWidget: React.FC<EdkawyAiChatWidgetProps> = ({
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="اسأل عن وجبة، صيدلية، أو عروض إدكو..."
                 maxLength={400}
-                className="flex-1 min-h-[44px] px-3.5 py-2 rounded-2xl border border-[#334155] bg-[#1E293B] text-[#F8FAFC] placeholder:text-[#94A3B8] text-sm"
+                className="flex-1 min-h-[44px] px-3.5 py-2 rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-[#94A3B8] text-sm"
               />
               <button
                 type="submit"
                 disabled={isSending || !inputText.trim()}
                 aria-label="إرسال"
-                className="min-h-[44px] min-w-[44px] rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-50 text-white flex items-center justify-center cursor-pointer"
+                className="min-h-[44px] min-w-[44px] rounded-2xl bg-[#46D5D4] hover:bg-[#32C2C1] disabled:opacity-50 text-[#0F172A] flex items-center justify-center cursor-pointer"
               >
-                <Send className="w-4 h-4" />
+                <PaperPlaneTilt weight="fill" className="w-4 h-4" />
               </button>
             </form>
           </section>

@@ -4,6 +4,8 @@
  */
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { ShieldAlert } from 'lucide-react';
@@ -44,21 +46,26 @@ import {
   listenToAdminOrders,
   listenToAdminStores,
   listenToAllAvailableProducts,
+  listenToAllDriverWallets,
   listenToAllSupportTicketsForAdmin,
   listenToAssignedSupportTickets,
   listenToBlockedEntitiesForAdmin,
+  listenToCourierDriverWallet,
   listenToCourierOrdersAndDispatch,
   listenToCustomerDirectory,
   listenToCustomerOrders,
   listenToCustomerReviews,
   listenToCustomerWalletTopups,
   listenToCustomerWalletTransactions,
+  listenToFinancialExceptions,
+  listenToFinancialTransactions,
   listenToLiveEvents,
   listenToAdminWalletTopups,
   listenToMerchantOrders,
   listenToMerchantStoreProducts,
   listenToMerchantStores,
   listenToMysteryBoxProducts,
+  listenToRestaurantSettlements,
   listenToSharedCart,
   listenToSingleBlockedStatus,
   listenToSingleCourier,
@@ -66,7 +73,7 @@ import {
   listenToStoreProducts,
   listenToStoreReviews,
   listenToStores,
-  listenToSystemMaintenanceConfig,
+  listenToTreasuryReceipts,
   listenToUserNotifications,
   listenToUserProfile,
   loginAnonymously,
@@ -116,6 +123,8 @@ import {
   seedAndListenToSuperAppCategories,
   savePendingSessionReferralCode,
   deleteCurrentAccountCompletely,
+  listenToUserCartInFirestore,
+  saveUserCartInFirestore,
 } from './services/edkawiFirebaseService';
 import {
   EdkoZoneRecord,
@@ -147,7 +156,10 @@ import {
   CourierRecord,
   CustomErrandOrderInput,
   CustomerDirectoryEntry,
+  DriverWalletRecord,
   FirebaseConnectionHealthResult,
+  FinancialExceptionRecord,
+  FinancialTransactionRecord,
   LegalSectionKey,
   LiveEventRecord,
   MenuItem,
@@ -158,7 +170,9 @@ import {
   PharmacyPrescriptionOrderInput,
   PortalRole,
   ProductRecord,
+  ProfileSubRoute,
   QaSimulationReport,
+  RestaurantSettlementRecord,
   ReviewRecord,
   ReviewSubmitInput,
   SavedAddressItem,
@@ -168,7 +182,7 @@ import {
   StoreOperationalSettingsInput,
   StoreRecord,
   SupportTicketRecord,
-  SystemMaintenanceConfig,
+  TreasuryReceiptRecord,
   UserProfileRecord,
   WalletTopupRequestRecord,
   WalletTransactionRecord,
@@ -207,8 +221,9 @@ import {
 import {
   BlockedAccountScreen,
   LegalPagesModal,
-  MaintenanceModeScreen,
 } from './components/LegalPagesModal';
+import { SystemProvider, useSystemConfig } from './contexts/SystemContext';
+import { GlobalSystemGuard } from './components/GlobalSystemGuard';
 import { StorePortalView } from './components/StorePortalView';
 import { CourierPortalView } from './components/CourierPortalView';
 import { AdminPortalView } from './components/AdminPortalView';
@@ -230,12 +245,48 @@ import { GroupOrderRoomView } from './components/GroupOrderRoomView';
 import { Toaster, toast } from 'react-hot-toast';
 import { WifiOff } from 'lucide-react';
 import { EdkawySplashScreen } from './components/EdkawySplashScreen';
+import AnimatedLogo from './components/AnimatedLogo';
+import { CinematicLandingPage } from './components/CinematicLandingPage';
+import { ProfileRoutesView } from './pages/ProfileRoutesView';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { CustomerOrders } from './components/CustomerOrders';
 import { StoreOrders } from './components/StoreOrders';
 import { CourierOrders } from './components/CourierOrders';
 
 const CART_STORAGE_KEY = 'edkawi_customer_cart_v1';
 const MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '').trim();
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const VALID_PROFILE_SUBROUTES: readonly ProfileSubRoute[] = [
+  'hub',
+  'addresses',
+  'orders',
+  'wallet',
+  'favorites',
+  'loyalty',
+  'support',
+  'settings',
+];
+
+function parseProfileSubRouteFromPath(pathname: string): ProfileSubRoute | null {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  if (clean === '/profile') return 'hub';
+  if (clean.startsWith('/profile/')) {
+    const section = clean.slice('/profile/'.length) as ProfileSubRoute;
+    return VALID_PROFILE_SUBROUTES.includes(section) ? section : 'hub';
+  }
+  return null;
+}
 
 function OptionalMapsProvider({ children }: { children: ReactNode }) {
   if (!MAPS_API_KEY) {
@@ -246,6 +297,26 @@ function OptionalMapsProvider({ children }: { children: ReactNode }) {
       {children}
     </APIProvider>
   );
+}
+
+function extractInviteParamsFromLocation(): {
+  token: string | null;
+  referralCode: string | null;
+} {
+  if (typeof window === 'undefined') {
+    return { token: null, referralCode: null };
+  }
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const rawToken = params.get('token') || params.get('inviteToken');
+    const rawRef = params.get('ref');
+    return {
+      token: rawToken && rawToken.trim() ? rawToken.trim() : null,
+      referralCode: rawRef && rawRef.trim() ? rawRef.trim() : null,
+    };
+  } catch {
+    return { token: null, referralCode: null };
+  }
 }
 
 function EdkawiWorkspace() {
@@ -272,15 +343,40 @@ function EdkawiWorkspace() {
 
   const [user, setUser] = useState<User | null>(null);
   const [autostartPreviewSession, setAutostartPreviewSession] = useState(false);
+  const [autostartDismissed, setAutostartDismissed] = useState(false);
+
+  const { isDark } = useTheme();
+  const [preLoginStage, setPreLoginStage] = useState<'splash' | 'landing' | 'auth'>(
+    () => {
+      if (typeof window === 'undefined') return 'landing';
+      const p = window.location.pathname;
+      if (p === '/login' || p === '/register' || p === '/invite') {
+        return 'auth';
+      }
+      return 'splash';
+    }
+  );
+  const [authInitialMode, setAuthInitialMode] = useState<
+    'login' | 'register_customer'
+  >('login');
+  const skipNextRemoteCartPushRef = useRef(false);
 
   const [activePortal, setActivePortal] = useState<PortalRole>('customer');
   const [activeView, setActiveView] = useState<ActiveView>('stores');
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [aiChatOpenTrigger, setAiChatOpenTrigger] = useState(0);
 
-  // Client Pathname Routing (/admin, /admin/requests, /store, /courier, /join, /group/:roomCode, /)
+  // Client Pathname Routing (/admin, /admin/requests, /store, /courier, /join, /group/:roomCode, /profile/*, /)
   const [currentPath, setCurrentPath] = useState<string>(() =>
     typeof window !== 'undefined' ? window.location.pathname : '/'
+  );
+
+  // Invitation Token & Referral State (?token=UUID or ?inviteToken=UUID, ?ref=AGENT-XXXX)
+  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(
+    () => extractInviteParamsFromLocation().token
+  );
+  const [pendingRefCode, setPendingRefCode] = useState<string | null>(
+    () => extractInviteParamsFromLocation().referralCode
   );
 
   function navigateToPath(nextPath: string) {
@@ -295,6 +391,12 @@ function EdkawiWorkspace() {
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
+      const extracted = extractInviteParamsFromLocation();
+      setPendingInviteToken(extracted.token);
+      if (extracted.referralCode) {
+        setPendingRefCode(extracted.referralCode);
+        savePendingSessionReferralCode(extracted.referralCode);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -305,7 +407,13 @@ function EdkawiWorkspace() {
     if (!authReady || !roleReady || pendingAuthTransition || !user || user.isAnonymous) {
       return;
     }
-    if (currentPath === '/join' || currentPath.startsWith('/group/')) {
+    if (
+      pendingInviteToken ||
+      currentPath === '/register' ||
+      currentPath === '/invite' ||
+      currentPath === '/join' ||
+      currentPath.startsWith('/group/')
+    ) {
       return;
     }
     if (activePortal === 'admin') {
@@ -330,7 +438,7 @@ function EdkawiWorkspace() {
         navigateToPath('/');
       }
     }
-  }, [authReady, roleReady, pendingAuthTransition, user, activePortal, currentPath]);
+  }, [authReady, roleReady, pendingAuthTransition, user, activePortal, currentPath, pendingInviteToken]);
 
   // User Profile, Onboarding, Notifications & Reviews State
   const [userProfile, setUserProfile] = useState<UserProfileRecord | null>(
@@ -385,6 +493,32 @@ function EdkawiWorkspace() {
   >([]);
   const [adminWalletTopups, setAdminWalletTopups] = useState<
     WalletTopupRequestRecord[]
+  >([]);
+  const [adminDriverWallets, setAdminDriverWallets] = useState<
+    DriverWalletRecord[]
+  >([]);
+  const [adminFinancialTransactions, setAdminFinancialTransactions] = useState<
+    FinancialTransactionRecord[]
+  >([]);
+  const [adminTreasuryReceipts, setAdminTreasuryReceipts] = useState<
+    TreasuryReceiptRecord[]
+  >([]);
+  const [adminRestaurantSettlements, setAdminRestaurantSettlements] = useState<
+    RestaurantSettlementRecord[]
+  >([]);
+  const [adminFinancialExceptions, setAdminFinancialExceptions] = useState<
+    FinancialExceptionRecord[]
+  >([]);
+  const [courierDriverWallet, setCourierDriverWallet] =
+    useState<DriverWalletRecord | null>(null);
+  const [courierTreasuryReceipts, setCourierTreasuryReceipts] = useState<
+    TreasuryReceiptRecord[]
+  >([]);
+  const [storeFinancialTransactions, setStoreFinancialTransactions] = useState<
+    FinancialTransactionRecord[]
+  >([]);
+  const [storeRestaurantSettlements, setStoreRestaurantSettlements] = useState<
+    RestaurantSettlementRecord[]
   >([]);
 
   const [isVisualSearchOpen, setIsVisualSearchOpen] = useState(false);
@@ -492,6 +626,49 @@ function EdkawiWorkspace() {
     }
   }, [cart]);
 
+  // UID-isolated Private Cart Real-Time Sync (/users/{uid}/private/cart)
+  useEffect(() => {
+    if (
+      !authReady ||
+      !roleReady ||
+      !user ||
+      user.isAnonymous ||
+      autostartPreviewSession ||
+      activePortal !== 'customer'
+    ) {
+      return;
+    }
+    const unsubCart = listenToUserCartInFirestore(user.uid, (remoteItems) => {
+      skipNextRemoteCartPushRef.current = true;
+      setCart((prev) => {
+        if (remoteItems.length === 0 && prev.length > 0) {
+          return prev;
+        }
+        return remoteItems;
+      });
+    });
+    return () => unsubCart();
+  }, [authReady, roleReady, user, autostartPreviewSession, activePortal]);
+
+  useEffect(() => {
+    if (
+      !user ||
+      user.isAnonymous ||
+      autostartPreviewSession ||
+      activePortal !== 'customer'
+    ) {
+      return;
+    }
+    if (skipNextRemoteCartPushRef.current) {
+      skipNextRemoteCartPushRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void saveUserCartInFirestore(user.uid, cart);
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [cart, user, autostartPreviewSession, activePortal]);
+
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
   const [justPlacedOrderId, setJustPlacedOrderId] = useState<string | null>(
     null
@@ -502,20 +679,8 @@ function EdkawiWorkspace() {
   const [isAddStoreOpen, setIsAddStoreOpen] = useState(false);
   const [noticeBanner, setNoticeBanner] = useState<string | null>(null);
 
-  // Invitation Token State (?token=UUID or ?inviteToken=UUID)
-  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(null);
-
-  // Maintenance Mode, Account Blocking & Legal Center Modal State
-  const [maintenanceConfig, setMaintenanceConfig] =
-    useState<SystemMaintenanceConfig>({
-      maintenanceMode: false,
-      maintenanceMessage:
-        'تطبيق إدكاوي في وضع الصيانة والتحديث حالياً لرفع كفاءة الخدمة في مدينة إدكو — سنعود للعمل خلال دقائق.',
-      updatedBy: '',
-      updatedAtIso: '',
-    });
-  const [forceAdminLoginInMaintenance, setForceAdminLoginInMaintenance] =
-    useState(false);
+  // Live System Config (Maintenance / Pre-Registration) from SystemContext + Account Blocking & Legal Modal State
+  const { systemConfig: maintenanceConfig } = useSystemConfig();
   const [currentUserBlockRecord, setCurrentUserBlockRecord] =
     useState<BlockedEntityRecord | null>(null);
   const [currentStoreBlockRecord, setCurrentStoreBlockRecord] =
@@ -528,23 +693,12 @@ function EdkawiWorkspace() {
     section: LegalSectionKey;
   }>({ isOpen: false, section: 'terms' });
 
-  // URL Parameters Parsing on Mount (?ref=AGENT-XXXX, ?inviteToken=UUID, ?token=UUID)
+  // Persist URL referral code (?ref=AGENT-XXXX) on initial load & updates
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const ref = params.get('ref');
-      if (ref && ref.trim()) {
-        savePendingSessionReferralCode(ref.trim());
-      }
-      const token = params.get('token') || params.get('inviteToken');
-      if (token && token.trim()) {
-        setPendingInviteToken(token.trim());
-      }
-    } catch {
-      // Ignore in restricted environment
+    if (pendingRefCode) {
+      savePendingSessionReferralCode(pendingRefCode);
     }
-  }, []);
+  }, [pendingRefCode]);
 
   // Subscribe to live Edko Zones & Super App Categories
   useEffect(() => {
@@ -584,13 +738,7 @@ function EdkawiWorkspace() {
       window.removeEventListener('gmp-quota-exceeded', handleQuotaEvent);
   }, []);
 
-  // Enforce exclusive Dark Mode (#0F172A) on <html>
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.dataset.theme = 'dark';
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
+  // Theme is controlled dynamically by ThemeProvider (Light & Dark Mode)
 
   // Boot Firestore connection check & Auth state listener
   useEffect(() => {
@@ -629,9 +777,16 @@ function EdkawiWorkspace() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Support ?autostart=1 skip-intro customer journey
+  // Support ?autostart=1 skip-intro customer journey (stopped once dismissed/logged out)
   useEffect(() => {
-    if (!isAutostartUrl || !authReady || user || autostartPreviewSession) {
+    if (
+      !isAutostartUrl ||
+      autostartDismissed ||
+      !authReady ||
+      user ||
+      autostartPreviewSession ||
+      pendingInviteToken
+    ) {
       return;
     }
 
@@ -650,7 +805,14 @@ function EdkawiWorkspace() {
     return () => {
       cancelled = true;
     };
-  }, [isAutostartUrl, authReady, user, autostartPreviewSession]);
+  }, [
+    isAutostartUrl,
+    autostartDismissed,
+    authReady,
+    user,
+    autostartPreviewSession,
+    pendingInviteToken,
+  ]);
 
   // Listen to authenticated UserProfileRecord, Role-Targeted Notifications, and Customer Reviews
   useEffect(() => {
@@ -743,20 +905,6 @@ function EdkawiWorkspace() {
     onboardingSkippedSession,
   ]);
 
-  // Listen to System Maintenance Mode (/appConfig/system) once signed in
-  useEffect(() => {
-    if (!authReady || !user) {
-      return;
-    }
-    const unsubMaint = listenToSystemMaintenanceConfig((cfg) => {
-      setMaintenanceConfig(cfg);
-      if (!cfg.maintenanceMode) {
-        setForceAdminLoginInMaintenance(false);
-      }
-    });
-    return () => unsubMaint();
-  }, [authReady, user]);
-
   // Attach strict role-scoped Firestore listeners once authenticated & role resolved (Zero demo seeding)
   useEffect(() => {
     if (!authReady || !roleReady || pendingAuthTransition || !user) {
@@ -783,6 +931,15 @@ function EdkawiWorkspace() {
         setCustomerWalletTopups([]);
         setCustomerWalletTransactions([]);
         setAdminWalletTopups([]);
+        setAdminDriverWallets([]);
+        setAdminFinancialTransactions([]);
+        setAdminTreasuryReceipts([]);
+        setAdminRestaurantSettlements([]);
+        setAdminFinancialExceptions([]);
+        setCourierDriverWallet(null);
+        setCourierTreasuryReceipts([]);
+        setStoreFinancialTransactions([]);
+        setStoreRestaurantSettlements([]);
       }
       return;
     }
@@ -896,9 +1053,20 @@ function EdkawiWorkspace() {
         }
       );
 
+      const unsubStoreTx = listenToFinancialTransactions(
+        setStoreFinancialTransactions,
+        { storeOwnerId: user.uid }
+      );
+      const unsubStoreSettlements = listenToRestaurantSettlements(
+        setStoreRestaurantSettlements,
+        user.uid
+      );
+
       return () => {
         unsubStores();
         unsubOrders();
+        unsubStoreTx();
+        unsubStoreSettlements();
       };
     }
 
@@ -927,10 +1095,21 @@ function EdkawiWorkspace() {
         }
       );
 
+      const unsubDriverWallet = listenToCourierDriverWallet(
+        user.uid,
+        setCourierDriverWallet
+      );
+      const unsubDriverReceipts = listenToTreasuryReceipts(
+        setCourierTreasuryReceipts,
+        user.uid
+      );
+
       setIsLoadingOrders(false);
       return () => {
         unsubCourier();
         unsubStores();
+        unsubDriverWallet();
+        unsubDriverReceipts();
       };
     }
 
@@ -1052,6 +1231,20 @@ function EdkawiWorkspace() {
       setAdminWalletTopups(items);
     });
 
+    const unsubAdminDriverWallets = listenToAllDriverWallets(setAdminDriverWallets);
+    const unsubAdminFinancialTx = listenToFinancialTransactions(
+      setAdminFinancialTransactions
+    );
+    const unsubAdminTreasuryReceipts = listenToTreasuryReceipts(
+      setAdminTreasuryReceipts
+    );
+    const unsubAdminSettlements = listenToRestaurantSettlements(
+      setAdminRestaurantSettlements
+    );
+    const unsubAdminExceptions = listenToFinancialExceptions(
+      setAdminFinancialExceptions
+    );
+
     return () => {
       unsubAdminStores();
       unsubAdminOrders();
@@ -1068,6 +1261,11 @@ function EdkawiWorkspace() {
       unsubAdminAuditLogs();
       unsubAdminAllProducts();
       unsubAdminWalletTopups();
+      unsubAdminDriverWallets();
+      unsubAdminFinancialTx();
+      unsubAdminTreasuryReceipts();
+      unsubAdminSettlements();
+      unsubAdminExceptions();
     };
   }, [
     authReady,
@@ -1486,11 +1684,11 @@ function EdkawiWorkspace() {
         url.searchParams.delete('token');
         url.searchParams.delete('inviteToken');
         url.searchParams.delete('type');
-        if (url.pathname === '/register') {
+        if (url.pathname === '/register' || url.pathname === '/invite') {
           url.pathname = '/';
         }
         window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
-        if (currentPath === '/register') {
+        if (currentPath === '/register' || currentPath === '/invite') {
           setCurrentPath('/');
         }
       } catch {
@@ -1643,6 +1841,8 @@ function EdkawiWorkspace() {
       await logoutUser().catch(() => {});
     }
     setAutostartPreviewSession(false);
+    setAuthInitialMode('login');
+    setPreLoginStage('auth');
     setActivePortal('customer');
     setActiveView('stores');
     window.scrollTo(0, 0);
@@ -2787,6 +2987,16 @@ function EdkawiWorkspace() {
   }
 
   async function handleLogout() {
+    setAutostartDismissed(true);
+    if (typeof window !== 'undefined') {
+      const currentParams = new URLSearchParams(window.location.search);
+      if (currentParams.has('autostart')) {
+        currentParams.delete('autostart');
+        const nextQuery = currentParams.toString();
+        const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
+        window.history.replaceState({}, '', nextUrl);
+      }
+    }
     if (user) {
       await logoutUser();
     }
@@ -2809,9 +3019,23 @@ function EdkawiWorkspace() {
     setCustomerWalletTopups([]);
     setCustomerWalletTransactions([]);
     setAdminWalletTopups([]);
+    setAdminDriverWallets([]);
+    setAdminFinancialTransactions([]);
+    setAdminTreasuryReceipts([]);
+    setAdminRestaurantSettlements([]);
+    setAdminFinancialExceptions([]);
+    setCourierDriverWallet(null);
+    setCourierTreasuryReceipts([]);
+    setStoreFinancialTransactions([]);
+    setStoreRestaurantSettlements([]);
     setAccountInitialSection('addresses');
+    setAuthInitialMode('login');
+    setPreLoginStage('landing');
     setActivePortal('customer');
     setActiveView('stores');
+    if (currentPath.startsWith('/profile')) {
+      navigateToPath('/');
+    }
   }
 
   async function handleNavbarPrimaryAction() {
@@ -2828,6 +3052,112 @@ function EdkawiWorkspace() {
         isLoading={true}
         statusText="جارٍ التحقق من الجلسة ومزامنة بيانات إدكو الحية..."
       />
+    );
+  }
+
+  // Top-Priority Route Interception: Invitation Registration (/register?token=..., /invite?token=..., ?token=...)
+  // Runs before MaintenanceModeScreen, /join, BlockedAccountScreen, and portal views so invite links NEVER land on the wrong screen.
+  if (pendingInviteToken) {
+    const inviteToastStyle = {
+      background: isDark ? '#1E293B' : '#FFFFFF',
+      color: isDark ? '#F8FAFC' : '#1E293B',
+      border: isDark ? '1px solid #334155' : '1px solid #E2E8F0',
+      borderRadius: '16px',
+      fontFamily: 'Cairo, sans-serif',
+      fontSize: '13px',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.18)',
+    };
+    if (!user || user.isAnonymous || autostartPreviewSession) {
+      return (
+        <div
+          id="top"
+          className="min-h-screen flex flex-col bg-white dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] transition-colors duration-300"
+        >
+          <Toaster
+            position="top-center"
+            reverseOrder={false}
+            toastOptions={{
+              duration: 3500,
+              style: inviteToastStyle,
+            }}
+          />
+          <main className="flex-1 w-full min-w-0">
+            <AuthScreen
+              onAuthTransitionStart={handleAuthTransitionStart}
+              onAuthTransitionEnd={(resolvedRole, needsProfileCompletion) => {
+                handleAuthTransitionEnd(resolvedRole, needsProfileCompletion);
+              }}
+              onFallbackGuestPreview={handleEnterGuestPreviewFallback}
+              onBackToLanding={() => {
+                handleClearInviteTokenAndUrl();
+                setPreLoginStage('landing');
+              }}
+              hasPendingCartForCheckout={hasPendingCartForCheckout}
+              hasPendingGroupJoin={hasPendingGroupJoin}
+              onOpenLegalModal={handleOpenLegalModal}
+              inviteToken={pendingInviteToken}
+              referralCode={pendingRefCode}
+              onClearInviteToken={handleClearInviteTokenAndUrl}
+            />
+          </main>
+          <LegalPagesModal
+            isOpen={legalModalState.isOpen}
+            initialSection={legalModalState.section}
+            onClose={() =>
+              setLegalModalState((prev) => ({ ...prev, isOpen: false }))
+            }
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div
+        dir="rtl"
+        className="min-h-screen bg-white dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] flex items-center justify-center p-4 sm:p-6 transition-colors duration-300"
+      >
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          toastOptions={{
+            duration: 3500,
+            style: inviteToastStyle,
+          }}
+        />
+        <div className="w-full max-w-lg rounded-2xl bg-slate-50 dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-6 shadow-2xl space-y-5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-2xl bg-[#FF7100]/15 border border-[#FF7100]/30 text-[#FF7100] text-xs font-extrabold">
+            دعوة تسجيل رسمية في منصة إدكاوي
+          </div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#1E293B] dark:text-[#F8FAFC]">
+            تم فتح رابط دعوة لتفعيل حساب جديد
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
+            أنت مسجل الدخول حالياً بالحساب{' '}
+            <span className="font-bold text-[#1E293B] dark:text-[#F8FAFC]">
+              {userProfile?.name || user?.email || 'الحساب الحالي'}
+            </span>
+            . لفتح نموذج التسجيل وتفعيل الدعوة بدون تداخل في الصلاحيات، قم بتسجيل الخروج من الجلسة الحالية أو تجاهل الدعوة للعودة إلى لوحتك.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                void handleLogout();
+              }}
+              className="flex-1 min-h-[46px] px-5 py-3 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] text-white text-sm font-extrabold cursor-pointer shadow-lg shadow-[#FF7100]/20"
+            >
+              تسجيل الخروج وفتح نموذج الدعوة الآن
+            </button>
+            <button
+              type="button"
+              onClick={handleClearInviteTokenAndUrl}
+              className="min-h-[46px] px-5 py-3 rounded-2xl bg-white dark:bg-[#10192D] hover:bg-slate-100 dark:hover:bg-[#334155] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-sm font-bold cursor-pointer"
+            >
+              تجاهل الدعوة والعودة لحسابي
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -2882,7 +3212,7 @@ function EdkawiWorkspace() {
     );
   }
 
-  // Standalone Public Route: /join (Store Partner Registration)
+  // Standalone Public Route: /join (Store Partner Registration) — Always Open
   if (currentPath === '/join') {
     return (
       <StoreJoinView
@@ -2893,7 +3223,141 @@ function EdkawiWorkspace() {
     );
   }
 
-  // Collaborative Group Order Split-View Room: /group/:roomCode (Requires non-anonymous account!)
+  // Public Login / Sign Up Route — Always Open BEFORE GlobalSystemGuard
+  const showPublicAuthScreen =
+    !isAuthenticated ||
+    ((Boolean(pendingInviteToken) || hasPendingGroupJoin) && isGuestCustomer);
+
+  const toastStyle = {
+    background: isDark ? '#1E293B' : '#FFFFFF',
+    color: isDark ? '#F8FAFC' : '#1E293B',
+    border: isDark ? '1px solid #334155' : '1px solid #E2E8F0',
+    borderRadius: '16px',
+    fontFamily: 'Cairo, sans-serif',
+    fontSize: '13px',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.18)',
+  };
+
+  if (showPublicAuthScreen) {
+    if (!hasPendingGroupJoin && preLoginStage === 'splash') {
+      return (
+        <AnimatedLogo
+          onComplete={() => setPreLoginStage('landing')}
+          autoAdvanceMs={2200}
+        />
+      );
+    }
+
+    if (!hasPendingGroupJoin && preLoginStage === 'landing') {
+      return (
+        <>
+          <Toaster
+            position="top-center"
+            reverseOrder={false}
+            toastOptions={{
+              duration: 3500,
+              style: toastStyle,
+            }}
+          />
+          <CinematicLandingPage
+            onStartLogin={() => {
+              setAuthInitialMode('login');
+              setPreLoginStage('auth');
+            }}
+            onStartRegister={() => {
+              setAuthInitialMode('register_customer');
+              setPreLoginStage('auth');
+            }}
+            onJoinPartner={() => navigateToPath('/join')}
+            onOpenLegalModal={handleOpenLegalModal}
+          />
+          <LegalPagesModal
+            isOpen={legalModalState.isOpen}
+            initialSection={legalModalState.section}
+            onClose={() =>
+              setLegalModalState((prev) => ({ ...prev, isOpen: false }))
+            }
+          />
+        </>
+      );
+    }
+
+    return (
+      <div
+        id="top"
+        className="min-h-screen flex flex-col bg-white dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] transition-colors duration-300"
+      >
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          toastOptions={{
+            duration: 3500,
+            style: toastStyle,
+          }}
+        />
+
+        {!isOnline && (
+          <div
+            role="alert"
+            dir="rtl"
+            className="bg-rose-600 text-white text-xs sm:text-sm font-bold py-2.5 px-4 text-center sticky top-0 z-[100] shadow-md flex items-center justify-center gap-2"
+          >
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>أنت غير متصل بالإنترنت حالياً. بياناتك وسلة مشترياتك محفوظة محلياً وسيتم المزامنة تلقائياً فور عودة الشبكة.</span>
+          </div>
+        )}
+
+        <Navbar
+          activePortal={activePortal}
+          activeCustomerView={activeView}
+          onNavigateCustomerView={(nextView) => {
+            setJustPlacedOrderId(null);
+            if (nextView === 'account') {
+              setAccountInitialSection('addresses');
+            }
+            setActiveView(nextView);
+            window.scrollTo(0, 0);
+          }}
+          cartItemCount={cartItemCount}
+          customerOrdersCount={customerOrders.length}
+          unreadNotificationsCount={unreadNotificationsCount}
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
+          isAuthenticated={isAuthenticated}
+          isGuestCustomer={isGuestCustomer}
+          userName={userProfile?.name || user?.displayName || undefined}
+          onPrimaryAction={handleNavbarPrimaryAction}
+        />
+
+        <main className="flex-1 w-full min-w-0">
+          <AuthScreen
+            onAuthTransitionStart={handleAuthTransitionStart}
+            onAuthTransitionEnd={(resolvedRole, needsProfileCompletion) => {
+              handleAuthTransitionEnd(resolvedRole, needsProfileCompletion);
+            }}
+            onFallbackGuestPreview={handleEnterGuestPreviewFallback}
+            onBackToLanding={() => setPreLoginStage('landing')}
+            initialAuthMode={authInitialMode}
+            hasPendingCartForCheckout={hasPendingCartForCheckout}
+            hasPendingGroupJoin={hasPendingGroupJoin}
+            onOpenLegalModal={handleOpenLegalModal}
+            inviteToken={pendingInviteToken}
+            referralCode={pendingRefCode}
+            onClearInviteToken={handleClearInviteTokenAndUrl}
+          />
+        </main>
+
+        <LegalPagesModal
+          isOpen={legalModalState.isOpen}
+          initialSection={legalModalState.section}
+          onClose={() =>
+            setLegalModalState((prev) => ({ ...prev, isOpen: false }))
+          }
+        />
+      </div>
+    );
+  }
+
+  // Protected Internal Route: Collaborative Group Order Split-View Room (/group/:roomCode)
   const groupRoomMatch = currentPath.match(/^\/group\/([A-Za-z0-9_-]+)/);
   if (
     groupRoomMatch &&
@@ -2903,49 +3367,55 @@ function EdkawiWorkspace() {
     activePortal === 'customer'
   ) {
     return (
-      <GroupOrderRoomView
-        roomCode={groupRoomMatch[1].toUpperCase()}
-        currentUser={userProfile}
-        onBackToHome={() => {
-          navigateToPath('/');
-        }}
-        onOpenStoreMenu={(storeId, cartId) => {
-          autoOpenedSharedStoreRef.current = cartId;
-          setActiveGroupCartId(cartId);
-          setSelectedStoreId(storeId);
-          setActiveView('store_menu');
-          navigateToPath(`/?groupCart=${cartId}`);
-        }}
-        onProceedToCheckout={(sharedCart) => {
-          handleCheckoutSharedCart(sharedCart);
-          navigateToPath('/');
-        }}
-      />
-    );
-  }
-
-  if (
-    isAuthenticated &&
-    !isStaffOrAdminPortal &&
-    maintenanceConfig.maintenanceMode &&
-    !forceAdminLoginInMaintenance
-  ) {
-    return (
       <>
-        <MaintenanceModeScreen
-          config={maintenanceConfig}
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          toastOptions={{
+            duration: 3500,
+            style: {
+              background: '#1E293B',
+              color: '#FFFFFF',
+              borderRadius: '16px',
+              fontFamily: 'Cairo, sans-serif',
+              fontSize: '13px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+            },
+          }}
+        />
+        <GlobalSystemGuard
+          user={user}
+          userProfile={userProfile}
+          activePortal={activePortal}
           isSignedIn={Boolean(user)}
           isGuestCustomer={isGuestCustomer}
           onOpenAdminLogin={() => {
-            setForceAdminLoginInMaintenance(true);
             void handleLogout();
           }}
           onOpenLegalModal={handleOpenLegalModal}
           onSignOut={() => {
-            setForceAdminLoginInMaintenance(true);
             void handleLogout();
           }}
-        />
+        >
+          <GroupOrderRoomView
+            roomCode={groupRoomMatch[1].toUpperCase()}
+            currentUser={userProfile}
+            onBackToHome={() => {
+              navigateToPath('/');
+            }}
+            onOpenStoreMenu={(storeId, cartId) => {
+              autoOpenedSharedStoreRef.current = cartId;
+              setActiveGroupCartId(cartId);
+              setSelectedStoreId(storeId);
+              setActiveView('store_menu');
+              navigateToPath(`/?groupCart=${cartId}`);
+            }}
+            onProceedToCheckout={(sharedCart) => {
+              handleCheckoutSharedCart(sharedCart);
+              navigateToPath('/');
+            }}
+          />
+        </GlobalSystemGuard>
         <LegalPagesModal
           isOpen={legalModalState.isOpen}
           initialSection={legalModalState.section}
@@ -2982,36 +3452,51 @@ function EdkawiWorkspace() {
       activePortal === 'operations' ||
       activePortal === 'sales_agent');
 
+  const activeProfileSubRoute = parseProfileSubRouteFromPath(currentPath);
+  const isShowingProfileRoute =
+    activeProfileSubRoute !== null || activeView === 'account';
+
   const activeBottomTab: ActiveTab =
     activeView === 'cart' || activeView === 'checkout'
       ? 'cart'
-      : activeView === 'orders' || activeView === 'tracking'
+      : activeView === 'orders' ||
+        activeView === 'tracking' ||
+        activeProfileSubRoute === 'orders'
       ? 'orders'
-      : activeView === 'account'
+      : isShowingProfileRoute
       ? 'account'
       : 'stores';
 
   return (
-    <div
-      id="top"
-      className="min-h-screen flex flex-col bg-[#0F172A] text-[#F8FAFC]"
-    >
+    <>
       {/* Toast Notifications System (react-hot-toast with Arabic RTL theme) */}
       <Toaster
         position="top-center"
         reverseOrder={false}
         toastOptions={{
           duration: 3500,
-          style: {
-            background: '#1E293B',
-            color: '#FFFFFF',
-            borderRadius: '16px',
-            fontFamily: 'Cairo, sans-serif',
-            fontSize: '13px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
-          },
+          style: toastStyle,
         }}
       />
+
+      <GlobalSystemGuard
+        user={user}
+        userProfile={userProfile}
+        activePortal={activePortal}
+        isSignedIn={Boolean(user)}
+        isGuestCustomer={isGuestCustomer}
+        onOpenAdminLogin={() => {
+          void handleLogout();
+        }}
+        onOpenLegalModal={handleOpenLegalModal}
+        onSignOut={() => {
+          void handleLogout();
+        }}
+      >
+        <div
+          id="top"
+          className="min-h-screen flex flex-col bg-white dark:bg-[#0F172A] text-[#1E293B] dark:text-[#F8FAFC] transition-colors duration-300"
+        >
 
       {/* Network Offline Status Banner */}
       {!isOnline && (
@@ -3027,14 +3512,14 @@ function EdkawiWorkspace() {
 
       {/* Google Maps Demo Key Quota Exceeded Top Sticky Banner */}
       {mapsQuotaExceeded && (
-        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-200 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-700 dark:text-amber-200 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
           <span>
             Google Maps Platform quota reached. If you are the app owner, visit{' '}
             <a
               href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline font-semibold text-amber-300 hover:text-amber-100"
+              className="underline font-semibold text-amber-800 dark:text-amber-300"
             >
               maps developer site
             </a>{' '}
@@ -3046,11 +3531,14 @@ function EdkawiWorkspace() {
       {!isFullBleedDashboard && (
         <Navbar
           activePortal={activePortal}
-          activeCustomerView={activeView}
+          activeCustomerView={isShowingProfileRoute ? 'account' : activeView}
           onNavigateCustomerView={(nextView) => {
             setJustPlacedOrderId(null);
             if (nextView === 'account') {
               setAccountInitialSection('addresses');
+              navigateToPath('/profile');
+            } else if (currentPath.startsWith('/profile')) {
+              navigateToPath('/');
             }
             setActiveView(nextView);
             window.scrollTo(0, 0);
@@ -3082,48 +3570,13 @@ function EdkawiWorkspace() {
               onClick={() => {
                 setAccountInitialSection('support');
                 setActiveView('account');
+                navigateToPath('/profile/support');
                 window.scrollTo(0, 0);
               }}
-              className="px-3.5 py-1.5 rounded-2xl bg-[#0F172A] text-[#F8FAFC] border border-[#334155] hover:bg-[#1E293B] text-xs font-bold cursor-pointer shrink-0"
+              className="px-3.5 py-1.5 rounded-2xl bg-[#10192D] text-[#F8FAFC] border border-[#334155] hover:bg-[#1E293B] text-xs font-bold cursor-pointer shrink-0"
             >
               فتح حسابي والتواصل مع الدعم
             </button>
-          </div>
-        </div>
-      )}
-
-      {isAuthenticated && !isGuestCustomer && Boolean(pendingInviteToken) && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          dir="rtl"
-          className="fixed inset-0 z-[110] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
-        >
-          <div className="w-full max-w-md rounded-2xl bg-[#1E293B] border border-[#334155] p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-extrabold text-[#F8FAFC]">
-              تم رصد رابط دعوة تسجيل في إدكاوي
-            </h3>
-            <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
-              أنت مسجل الدخول حالياً بحساب ({userProfile?.name || user?.email || 'حساب حالي'}). لاستكمال تسجيل الحساب الجديد عبر رابط الدعوة، يرجى تسجيل الخروج أولاً من الجلسة الحالية.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  void handleLogout();
-                }}
-                className="flex-1 min-h-[44px] px-4 py-2.5 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-bold cursor-pointer"
-              >
-                تسجيل الخروج وفتح الدعوة
-              </button>
-              <button
-                type="button"
-                onClick={handleClearInviteTokenAndUrl}
-                className="min-h-[44px] px-4 py-2.5 rounded-2xl bg-[#0F172A] hover:bg-[#334155] border border-[#334155] text-[#F8FAFC] text-xs sm:text-sm font-bold cursor-pointer"
-              >
-                تجاهل وإغلاق
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -3134,34 +3587,14 @@ function EdkawiWorkspace() {
           aria-live="polite"
           className="fixed top-4 inset-x-0 flex justify-center px-4 pointer-events-none edkawi-toast-layer"
         >
-          <div className="pointer-events-auto max-w-xl rounded-2xl bg-[#1E293B] text-white border border-white/15 shadow-2xl px-5 py-3 text-xs sm:text-sm font-bold text-center">
+          <div className="pointer-events-auto max-w-xl rounded-2xl bg-white dark:bg-[#1E293B] text-[#1E293B] dark:text-white border border-slate-200 dark:border-white/15 shadow-2xl px-5 py-3 text-xs sm:text-sm font-bold text-center">
             {noticeBanner}
           </div>
         </div>
       )}
 
       <main className="flex-1 w-full min-w-0">
-        {!isAuthenticated || ((Boolean(pendingInviteToken) || hasPendingGroupJoin) && isGuestCustomer) ? (
-          <AuthScreen
-            onAuthTransitionStart={handleAuthTransitionStart}
-            onAuthTransitionEnd={(resolvedRole, needsProfileCompletion) => {
-              if (
-                resolvedRole === 'admin' ||
-                resolvedRole === 'support_agent' ||
-                resolvedRole === 'operations'
-              ) {
-                setForceAdminLoginInMaintenance(false);
-              }
-              handleAuthTransitionEnd(resolvedRole, needsProfileCompletion);
-            }}
-            onFallbackGuestPreview={handleEnterGuestPreviewFallback}
-            hasPendingCartForCheckout={hasPendingCartForCheckout}
-            hasPendingGroupJoin={hasPendingGroupJoin}
-            onOpenLegalModal={handleOpenLegalModal}
-            inviteToken={pendingInviteToken}
-            onClearInviteToken={handleClearInviteTokenAndUrl}
-          />
-        ) : activePortal === 'support_agent' ? (
+        {activePortal === 'support_agent' ? (
           <SupportAgentPortalView
             agentUid={user?.uid ?? ''}
             agentName={
@@ -3200,6 +3633,8 @@ function EdkawiWorkspace() {
             orders={portalOrders}
             isLoadingOrders={isLoadingOrders}
             storeReviews={storeReviews}
+            restaurantSettlements={storeRestaurantSettlements}
+            financialTransactions={storeFinancialTransactions}
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setIsNotificationsOpen(true)}
             onAcceptOrder={handleAcceptOrderByStore}
@@ -3225,6 +3660,8 @@ function EdkawiWorkspace() {
             isLoadingCourier={isLoadingCourier}
             orders={portalOrders}
             stores={allStores}
+            driverWallet={courierDriverWallet}
+            treasuryReceipts={courierTreasuryReceipts}
             surgeEnabled={Boolean(maintenanceConfig.surgeEnabled)}
             surgeMultiplier={maintenanceConfig.surgeMultiplier ?? 1.5}
             onNotify={showNotice}
@@ -3255,6 +3692,11 @@ function EdkawiWorkspace() {
             adminWalletTopups={adminWalletTopups}
             products={allAvailableProducts}
             auditLogs={adminAuditLogs}
+            driverWallets={adminDriverWallets}
+            financialTransactions={adminFinancialTransactions}
+            treasuryReceipts={adminTreasuryReceipts}
+            restaurantSettlements={adminRestaurantSettlements}
+            financialExceptions={adminFinancialExceptions}
             broadcastHistory={adminBroadcastHistory}
             unreadNotificationsCount={unreadNotificationsCount}
             onOpenNotifications={() => setIsNotificationsOpen(true)}
@@ -3300,223 +3742,282 @@ function EdkawiWorkspace() {
             onLogout={handleLogout}
             onNotify={showNotice}
           />
-        ) : activeView === 'account' ? (
-          <CustomerAccountView
-            userUid={user?.uid ?? ''}
-            userEmail={user?.email ?? ''}
-            userDisplayName={user?.displayName ?? ''}
-            emailVerified={Boolean(user?.emailVerified)}
-            isAnonymous={isGuestCustomer}
-            userProfile={userProfile}
-            stores={activeCustomerStores}
-            walletTopups={customerWalletTopups}
-            walletTransactions={customerWalletTransactions}
-            initialSection={accountInitialSection}
-            onUpdateProfileDetails={handleUpdateCustomerProfileDetails}
-            onRedeemPoints={handleRedeemCustomerPoints}
-            onToggleFavoriteStore={handleToggleFavoriteStore}
-            onSelectStore={handleOpenStoreMenu}
-            onOpenDailySpin={() => setIsDailySpinOpen(true)}
-            onOpenAuthModal={() => {
-              void handleOpenLoginScreenForCheckout();
-            }}
-            onOpenLegalModal={handleOpenLegalModal}
-            onNavigateToJoin={() => navigateToPath('/join')}
-            onNavigateToAds={() => {
-              setActiveView('stores');
-              window.setTimeout(() => {
-                const adsBanner = document.getElementById('home-ads-banner');
-                if (adsBanner) {
-                  adsBanner.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                  });
-                } else {
-                  window.scrollTo({ top: 320, behavior: 'smooth' });
-                }
-              }, 120);
-            }}
-            activeOrdersCount={activeCustomerOrdersCount}
-            onSignOut={() => {
-              void handleLogout();
-            }}
-          />
-        ) : activeView === 'store_menu' && selectedStore ? (
-          <StoreMenuView
-            store={selectedStore}
-            products={storeProducts}
-            isLoadingProducts={isLoadingProducts}
-            productsError={productsError}
-            cart={cart}
-            currentUserUid={user?.uid || ''}
-            isGuestCustomer={isGuestCustomer}
-            userProfile={userProfile}
-            defaultCustomerName={userProfile?.name || user?.displayName || ''}
-            isFavorite={Boolean(
-              userProfile?.favoriteStoreIds?.includes(selectedStore.id)
-            )}
-            onToggleFavorite={() => {
-              void handleToggleFavoriteStore(selectedStore.id);
-            }}
-            reviews={storeReviews}
-            activeSharedCart={
-              activeSharedCart && activeSharedCart.storeId === selectedStore.id
-                ? activeSharedCart
-                : null
-            }
-            onStartGroupOrder={handleStartGroupOrder}
-            onUpsertSharedCartItem={handleUpsertSharedCartItem}
-            onUpdateSharedCartEntryQuantity={handleUpdateSharedCartEntryQuantity}
-            onCheckoutSharedCart={handleCheckoutSharedCart}
-            onLeaveSharedCart={handleLeaveSharedCart}
-            onSubmitPharmacyOrder={handleSubmitPharmacyOrder}
-            onOpenAuthModal={() => {
-              void handleOpenLoginScreenForCheckout();
-            }}
-            onBackToStores={() => setActiveView('stores')}
-            onAddProductToCart={handleAddToCart}
-            onUpdateCartQuantity={handleUpdateQuantity}
-          />
-        ) : activeView === 'cart' ? (
-          <CartPageView
-            cart={cart}
-            cartStore={cartStore}
-            isGuestCustomer={isGuestCustomer}
-            appliedCoupon={appliedCoupon}
-            onApplyCoupon={handleApplyCouponCode}
-            onRemoveCoupon={() => setAppliedCoupon(null)}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveItem}
-            onClearCart={() => {
-              setCart([]);
-              setAppliedCoupon(null);
-            }}
-            onBackToShopping={() => {
-              if (cart.length > 0 && selectedStoreId === cart[0].storeId) {
-                setActiveView('store_menu');
-              } else {
-                setActiveView('stores');
-              }
-            }}
-            onProceedToCheckout={() => {
-              setActiveView('checkout');
-              window.scrollTo(0, 0);
-            }}
-            onSignInWithGoogleForCheckout={handleSignInWithGoogleForCheckout}
-            onOpenLoginScreenForCheckout={handleOpenLoginScreenForCheckout}
-          />
-        ) : activeView === 'checkout' ? (
-          <CheckoutPageView
-            cart={cart}
-            cartStore={cartStore}
-            isGuestCustomer={isGuestCustomer}
-            defaultCustomerName={userProfile?.name || user?.displayName || ''}
-            userProfile={userProfile}
-            appliedCoupon={appliedCoupon}
-            edkoZones={edkoZones}
-            paymentMethodsConfig={maintenanceConfig.paymentMethods}
-            activeSharedCart={
-              activeSharedCart &&
-              cart[0] &&
-              activeSharedCart.storeId === cart[0].storeId
-                ? activeSharedCart
-                : null
-            }
-            onBackToCart={() => setActiveView('cart')}
-            onOpenWalletTopup={() => {
-              setAccountInitialSection('wallet');
-              setActiveView('account');
-              window.scrollTo(0, 0);
-            }}
-            onConfirmOrder={handleConfirmOrder}
-            onSignInWithGoogleForCheckout={handleSignInWithGoogleForCheckout}
-            onEmailAuthForCheckout={handleInlineEmailAuthForCheckout}
-            onOpenLoginScreenForCheckout={handleOpenLoginScreenForCheckout}
-          />
-        ) : activeView === 'tracking' ? (
-          <OrderTrackingView
-            order={trackedOrder}
-            store={trackedOrderStore}
-            justPlacedSuccess={
-              Boolean(justPlacedOrderId) &&
-              justPlacedOrderId === trackedOrder?.id
-            }
-            existingReview={
-              trackedOrder
-                ? customerReviewsByOrderId[trackedOrder.id] ?? null
-                : null
-            }
-            onOpenReviewModal={(ord) => setReviewModalOrder(ord)}
-            onApprovePharmacyQuote={handleApprovePharmacyQuoteByCustomer}
-            onApproveErrandQuote={handleApproveErrandQuoteByCustomer}
-            onConfirmPendingOrder={handleConfirmPendingOrder}
-            onCancelOrder={handleCancelOrder}
-            onNavigateToOrders={() => {
-              setJustPlacedOrderId(null);
-              setActiveView('orders');
-            }}
-            onNavigateToStores={() => {
-              setJustPlacedOrderId(null);
-              setActiveView('stores');
-            }}
-          />
-        ) : activeView === 'orders' ? (
-          <CustomerOrders
-            onTrackOrder={(orderId) => {
-              setTrackedOrderId(orderId);
-              setJustPlacedOrderId(null);
-              setActiveView('tracking');
-              window.scrollTo(0, 0);
-            }}
-            onConfirmPendingOrder={handleConfirmPendingOrder}
-            onExploreStores={() => setActiveView('stores')}
-            onReorder={(order) => {
-              if (order.items && order.items.length > 0) {
-                const reorderItems: CartItem[] = order.items.map((it) => ({
-                  storeId: order.storeId,
-                  storeName: order.storeName,
-                  deliveryFee: order.deliveryFee,
-                  item: {
-                    id: it.productId || 'item_' + Math.random().toString(36).slice(2, 7),
-                    name: it.name,
-                    description: '',
-                    price: it.price,
-                    category: 'مشويات ومطاعم',
-                    isAvailable: true,
-                  },
-                  quantity: it.quantity,
-                }));
-                setCart(reorderItems);
-                setActiveView('cart');
-                toast.success('تمت إضافة أصناف الطلب إلى سلتك 🛒');
-              }
-            }}
-          />
+        ) : isShowingProfileRoute ? (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`profile-${activeProfileSubRoute ?? 'hub'}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ProfileRoutesView
+                subRoute={activeProfileSubRoute ?? 'hub'}
+                onNavigateSubRoute={(next) => {
+                  setActiveView('account');
+                  navigateToPath(next === 'hub' ? '/profile' : `/profile/${next}`);
+                }}
+                userUid={user?.uid ?? ''}
+                userEmail={user?.email ?? ''}
+                userDisplayName={user?.displayName ?? ''}
+                emailVerified={Boolean(user?.emailVerified)}
+                isAnonymous={isGuestCustomer}
+                userProfile={userProfile}
+                stores={activeCustomerStores}
+                walletTopups={customerWalletTopups}
+                walletTransactions={customerWalletTransactions}
+                activeOrdersCount={activeCustomerOrdersCount}
+                totalOrdersCount={customerOrders.length}
+                onUpdateProfileDetails={handleUpdateCustomerProfileDetails}
+                onRedeemPoints={handleRedeemCustomerPoints}
+                onToggleFavoriteStore={handleToggleFavoriteStore}
+                onSelectStore={(st) => {
+                  if (currentPath.startsWith('/profile')) {
+                    navigateToPath('/');
+                  }
+                  handleOpenStoreMenu(st);
+                }}
+                onOpenAuthModal={() => {
+                  void handleOpenLoginScreenForCheckout();
+                }}
+                onOpenLegalModal={handleOpenLegalModal}
+                onOpenDailySpin={() => setIsDailySpinOpen(true)}
+                onNavigateToJoin={() => navigateToPath('/join')}
+                onTrackOrder={(orderId) => {
+                  if (currentPath.startsWith('/profile')) {
+                    navigateToPath('/');
+                  }
+                  setTrackedOrderId(orderId);
+                  setJustPlacedOrderId(null);
+                  setActiveView('tracking');
+                  window.scrollTo(0, 0);
+                }}
+                onConfirmPendingOrder={handleConfirmPendingOrder}
+                onExploreStores={() => {
+                  setActiveView('stores');
+                  if (currentPath.startsWith('/profile')) {
+                    navigateToPath('/');
+                  }
+                }}
+                onReorder={(order) => {
+                  if (order.items && order.items.length > 0) {
+                    const reorderItems: CartItem[] = order.items.map((it) => ({
+                      storeId: order.storeId,
+                      storeName: order.storeName,
+                      deliveryFee: order.deliveryFee,
+                      item: {
+                        id: it.productId || 'item_' + Math.random().toString(36).slice(2, 7),
+                        name: it.name,
+                        description: '',
+                        price: it.price,
+                        category: 'مشويات ومطاعم',
+                        isAvailable: true,
+                      },
+                      quantity: it.quantity,
+                    }));
+                    setCart(reorderItems);
+                    if (currentPath.startsWith('/profile')) {
+                      navigateToPath('/');
+                    }
+                    setActiveView('cart');
+                    toast.success('تمت إضافة أصناف الطلب إلى سلتك 🛒');
+                  }
+                }}
+                onSignOut={() => {
+                  void handleLogout();
+                }}
+              />
+            </motion.div>
+          </AnimatePresence>
         ) : (
-          <StoresView
-            stores={activeCustomerStores}
-            dynamicCategories={superAppCategories}
-            isLoadingStores={isLoadingStores}
-            storesError={storesError}
-            cart={cart}
-            userName={userProfile?.name || user?.displayName || undefined}
-            ads={activeAds}
-            isLoadingAds={isLoadingAds}
-            activeCampaigns={activeCampaigns}
-            mysteryBoxProducts={mysteryBoxProducts}
-            trendingProducts={allAvailableProducts}
-            liveEvents={liveEvents}
-            customerTotalSpent={customerTotalSpent}
-            favoriteStoreIds={userProfile?.favoriteStoreIds ?? []}
-            onToggleFavoriteStore={(sid) => {
-              void handleToggleFavoriteStore(sid);
-            }}
-            onOpenStoreMenu={handleOpenStoreMenu}
-            onAddMysteryBoxToCart={handleAddMysteryBoxToCart}
-            onOpenVisualSearch={() => setIsVisualSearchOpen(true)}
-            onOpenErrandService={() => setIsErrandModalOpen(true)}
-            onOpenAiChat={() => setAiChatOpenTrigger((n) => n + 1)}
-          />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeView}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeView === 'store_menu' && selectedStore ? (
+                <StoreMenuView
+                  store={selectedStore}
+                  products={storeProducts}
+                  isLoadingProducts={isLoadingProducts}
+                  productsError={productsError}
+                  cart={cart}
+                  currentUserUid={user?.uid || ''}
+                  isGuestCustomer={isGuestCustomer}
+                  userProfile={userProfile}
+                  defaultCustomerName={userProfile?.name || user?.displayName || ''}
+                  isFavorite={Boolean(
+                    userProfile?.favoriteStoreIds?.includes(selectedStore.id)
+                  )}
+                  onToggleFavorite={() => {
+                    void handleToggleFavoriteStore(selectedStore.id);
+                  }}
+                  reviews={storeReviews}
+                  activeSharedCart={
+                    activeSharedCart && activeSharedCart.storeId === selectedStore.id
+                      ? activeSharedCart
+                      : null
+                  }
+                  onStartGroupOrder={handleStartGroupOrder}
+                  onUpsertSharedCartItem={handleUpsertSharedCartItem}
+                  onUpdateSharedCartEntryQuantity={handleUpdateSharedCartEntryQuantity}
+                  onCheckoutSharedCart={handleCheckoutSharedCart}
+                  onLeaveSharedCart={handleLeaveSharedCart}
+                  onSubmitPharmacyOrder={handleSubmitPharmacyOrder}
+                  onOpenAuthModal={() => {
+                    void handleOpenLoginScreenForCheckout();
+                  }}
+                  onBackToStores={() => setActiveView('stores')}
+                  onAddProductToCart={handleAddToCart}
+                  onUpdateCartQuantity={handleUpdateQuantity}
+                />
+              ) : activeView === 'cart' ? (
+                <CartPageView
+                  cart={cart}
+                  cartStore={cartStore}
+                  isGuestCustomer={isGuestCustomer}
+                  appliedCoupon={appliedCoupon}
+                  onApplyCoupon={handleApplyCouponCode}
+                  onRemoveCoupon={() => setAppliedCoupon(null)}
+                  onUpdateQuantity={handleUpdateQuantity}
+                  onRemoveItem={handleRemoveItem}
+                  onClearCart={() => {
+                    setCart([]);
+                    setAppliedCoupon(null);
+                  }}
+                  onBackToShopping={() => {
+                    if (cart.length > 0 && selectedStoreId === cart[0].storeId) {
+                      setActiveView('store_menu');
+                    } else {
+                      setActiveView('stores');
+                    }
+                  }}
+                  onProceedToCheckout={() => {
+                    setActiveView('checkout');
+                    window.scrollTo(0, 0);
+                  }}
+                  onSignInWithGoogleForCheckout={handleSignInWithGoogleForCheckout}
+                  onOpenLoginScreenForCheckout={handleOpenLoginScreenForCheckout}
+                />
+              ) : activeView === 'checkout' ? (
+                <CheckoutPageView
+                  cart={cart}
+                  cartStore={cartStore}
+                  isGuestCustomer={isGuestCustomer}
+                  defaultCustomerName={userProfile?.name || user?.displayName || ''}
+                  userProfile={userProfile}
+                  appliedCoupon={appliedCoupon}
+                  edkoZones={edkoZones}
+                  paymentMethodsConfig={maintenanceConfig.paymentMethods}
+                  activeSharedCart={
+                    activeSharedCart &&
+                    cart[0] &&
+                    activeSharedCart.storeId === cart[0].storeId
+                      ? activeSharedCart
+                      : null
+                  }
+                  onBackToCart={() => setActiveView('cart')}
+                  onOpenWalletTopup={() => {
+                    setAccountInitialSection('wallet');
+                    setActiveView('account');
+                    navigateToPath('/profile/wallet');
+                    window.scrollTo(0, 0);
+                  }}
+                  onConfirmOrder={handleConfirmOrder}
+                  onSignInWithGoogleForCheckout={handleSignInWithGoogleForCheckout}
+                  onEmailAuthForCheckout={handleInlineEmailAuthForCheckout}
+                  onOpenLoginScreenForCheckout={handleOpenLoginScreenForCheckout}
+                />
+              ) : activeView === 'tracking' ? (
+                <OrderTrackingView
+                  order={trackedOrder}
+                  store={trackedOrderStore}
+                  justPlacedSuccess={
+                    Boolean(justPlacedOrderId) &&
+                    justPlacedOrderId === trackedOrder?.id
+                  }
+                  existingReview={
+                    trackedOrder
+                      ? customerReviewsByOrderId[trackedOrder.id] ?? null
+                      : null
+                  }
+                  onOpenReviewModal={(ord) => setReviewModalOrder(ord)}
+                  onApprovePharmacyQuote={handleApprovePharmacyQuoteByCustomer}
+                  onApproveErrandQuote={handleApproveErrandQuoteByCustomer}
+                  onConfirmPendingOrder={handleConfirmPendingOrder}
+                  onCancelOrder={handleCancelOrder}
+                  onNavigateToOrders={() => {
+                    setJustPlacedOrderId(null);
+                    setActiveView('orders');
+                  }}
+                  onNavigateToStores={() => {
+                    setJustPlacedOrderId(null);
+                    setActiveView('stores');
+                  }}
+                />
+              ) : activeView === 'orders' ? (
+                <CustomerOrders
+                  onTrackOrder={(orderId) => {
+                    setTrackedOrderId(orderId);
+                    setJustPlacedOrderId(null);
+                    setActiveView('tracking');
+                    window.scrollTo(0, 0);
+                  }}
+                  onConfirmPendingOrder={handleConfirmPendingOrder}
+                  onExploreStores={() => setActiveView('stores')}
+                  onReorder={(order) => {
+                    if (order.items && order.items.length > 0) {
+                      const reorderItems: CartItem[] = order.items.map((it) => ({
+                        storeId: order.storeId,
+                        storeName: order.storeName,
+                        deliveryFee: order.deliveryFee,
+                        item: {
+                          id: it.productId || 'item_' + Math.random().toString(36).slice(2, 7),
+                          name: it.name,
+                          description: '',
+                          price: it.price,
+                          category: 'مشويات ومطاعم',
+                          isAvailable: true,
+                        },
+                        quantity: it.quantity,
+                      }));
+                      setCart(reorderItems);
+                      setActiveView('cart');
+                      toast.success('تمت إضافة أصناف الطلب إلى سلتك 🛒');
+                    }
+                  }}
+                />
+              ) : (
+                <StoresView
+                  stores={activeCustomerStores}
+                  dynamicCategories={superAppCategories}
+                  isLoadingStores={isLoadingStores}
+                  storesError={storesError}
+                  cart={cart}
+                  userName={userProfile?.name || user?.displayName || undefined}
+                  ads={activeAds}
+                  isLoadingAds={isLoadingAds}
+                  activeCampaigns={activeCampaigns}
+                  mysteryBoxProducts={mysteryBoxProducts}
+                  trendingProducts={allAvailableProducts}
+                  liveEvents={liveEvents}
+                  customerTotalSpent={customerTotalSpent}
+                  favoriteStoreIds={userProfile?.favoriteStoreIds ?? []}
+                  onToggleFavoriteStore={(sid) => {
+                    void handleToggleFavoriteStore(sid);
+                  }}
+                  onOpenStoreMenu={handleOpenStoreMenu}
+                  onAddMysteryBoxToCart={handleAddMysteryBoxToCart}
+                  onOpenVisualSearch={() => setIsVisualSearchOpen(true)}
+                  onOpenErrandService={() => setIsErrandModalOpen(true)}
+                  onOpenAiChat={() => setAiChatOpenTrigger((n) => n + 1)}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
       </main>
 
@@ -3524,6 +4025,9 @@ function EdkawiWorkspace() {
         <FloatingCartBar
           cart={cart}
           onOpenCart={() => {
+            if (currentPath.startsWith('/profile')) {
+              navigateToPath('/');
+            }
             setActiveView('cart');
             window.scrollTo(0, 0);
           }}
@@ -3537,12 +4041,19 @@ function EdkawiWorkspace() {
           activeOrdersCount={activeCustomerOrdersCount}
           onSelectTab={(tab) => {
             setJustPlacedOrderId(null);
-            if (tab === 'stores') setActiveView('stores');
-            else if (tab === 'cart') setActiveView('cart');
-            else if (tab === 'orders') setActiveView('orders');
-            else if (tab === 'account') {
+            if (tab === 'stores') {
+              if (currentPath.startsWith('/profile')) navigateToPath('/');
+              setActiveView('stores');
+            } else if (tab === 'cart') {
+              if (currentPath.startsWith('/profile')) navigateToPath('/');
+              setActiveView('cart');
+            } else if (tab === 'orders') {
+              if (currentPath.startsWith('/profile')) navigateToPath('/');
+              setActiveView('orders');
+            } else if (tab === 'account') {
               setAccountInitialSection('addresses');
               setActiveView('account');
+              navigateToPath('/profile');
             }
             window.scrollTo(0, 0);
           }}
@@ -3604,15 +4115,6 @@ function EdkawiWorkspace() {
           onSubmitErrand={handlePlaceCustomErrand}
         />
       )}
-
-      {/* Official Edkawy Legal Center Modal */}
-      <LegalPagesModal
-        isOpen={legalModalState.isOpen}
-        initialSection={legalModalState.section}
-        onClose={() =>
-          setLegalModalState((prev) => ({ ...prev, isOpen: false }))
-        }
-      />
 
       {/* Real-Time Notifications Drawer (Orders + Internal Admin Broadcasts) */}
       <NotificationsDrawer
@@ -3697,53 +4199,53 @@ function EdkawiWorkspace() {
 
       {!isFullBleedDashboard && (
         <footer
-          className={`bg-[#1E293B] border-t border-[#334155] mt-12 ${
+          className={`bg-slate-50 dark:bg-[#1E293B] border-t border-slate-200 dark:border-[#334155] mt-12 ${
             hasBottomBar ? 'pb-24' : ''
           }`}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 space-y-4 text-xs text-[#94A3B8]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 space-y-4 text-xs text-slate-600 dark:text-[#94A3B8]">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p className="font-semibold text-[#F8FAFC] text-center sm:text-right">
+              <p className="font-semibold text-[#1E293B] dark:text-[#F8FAFC] text-center sm:text-right">
                 إدكاوي (EDKAWY) — منظومة التوصيل الذكية للمطاعم والمتاجر والصيدليات في مدينة إدكو.
               </p>
-              <p className="text-[#94A3B8]">
+              <p className="text-slate-600 dark:text-[#94A3B8]">
                 مدينة إدكو · محافظة البحيرة
               </p>
             </div>
 
-            <div className="pt-3 border-t border-[#334155] flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-[11px] font-semibold">
+            <div className="pt-3 border-t border-slate-200 dark:border-[#334155] flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-[11px] font-semibold">
               <button
                 type="button"
                 onClick={() => handleOpenLegalModal('terms')}
-                className="hover:text-[#FF6B00] cursor-pointer"
+                className="hover:text-[#FF7100] cursor-pointer"
               >
                 الشروط والأحكام
               </button>
               <button
                 type="button"
                 onClick={() => handleOpenLegalModal('privacy')}
-                className="hover:text-[#FF6B00] cursor-pointer"
+                className="hover:text-[#FF7100] cursor-pointer"
               >
                 سياسة الخصوصية وموقع GPS
               </button>
               <button
                 type="button"
                 onClick={() => handleOpenLegalModal('refund')}
-                className="hover:text-[#FF6B00] cursor-pointer"
+                className="hover:text-[#FF7100] cursor-pointer"
               >
                 سياسة الاسترجاع والدفع
               </button>
               <button
                 type="button"
                 onClick={() => handleOpenLegalModal('pharmacy')}
-                className="hover:text-[#FF6B00] cursor-pointer"
+                className="hover:text-[#FF7100] cursor-pointer"
               >
                 إخلاء مسؤولية الصيدليات
               </button>
               <button
                 type="button"
                 onClick={() => handleOpenLegalModal('partners')}
-                className="hover:text-[#FF6B00] cursor-pointer"
+                className="hover:text-[#FF7100] cursor-pointer"
               >
                 اتفاقية المتاجر والمناديب والحظر
               </button>
@@ -3751,16 +4253,35 @@ function EdkawiWorkspace() {
           </div>
         </footer>
       )}
-    </div>
+        </div>
+      </GlobalSystemGuard>
+
+      {/* Official Edkawy Legal Center Modal (accessible both inside app and on lock screens) */}
+      <LegalPagesModal
+        isOpen={legalModalState.isOpen}
+        initialSection={legalModalState.section}
+        onClose={() =>
+          setLegalModalState((prev) => ({ ...prev, isOpen: false }))
+        }
+      />
+    </>
   );
 }
 
 export default function App() {
   return (
     <ErrorBoundary>
-      <OptionalMapsProvider>
-        <EdkawiWorkspace />
-      </OptionalMapsProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <MotionConfig reducedMotion="user">
+            <OptionalMapsProvider>
+              <SystemProvider>
+                <EdkawiWorkspace />
+              </SystemProvider>
+            </OptionalMapsProvider>
+          </MotionConfig>
+        </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

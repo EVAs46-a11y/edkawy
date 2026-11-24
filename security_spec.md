@@ -26,3 +26,6 @@
 10. **Customer Self-Marking Order `delivered` to Farm Loyalty Points**: Customer updating `status: 'delivered', pointsEarned: 99999` -> Rejected by `isAllowedOrderTransition` requiring `isApprovedCourier()`.
 11. **Terminal State Resurrection**: Attempting to transition a `'delivered'` or `'cancelled'` order back to `'on_the_way'` by non-admin -> Rejected by `!(ext.status in ['delivered', 'cancelled'])`.
 12. **Client-Spoofed Timestamp**: Passing past/future client `Timestamp` instead of `serverTimestamp()` -> Rejected by `incoming().createdAt == request.time` / `incoming().updatedAt == request.time`.
+13. **Verified Admin Creation Without Client Static Gate**: Creating `/admins/{uid}` requires `request.auth.token.email_verified == true`, exact email match against the allowlisted admin emails, and atomic `/appConfig/bootstrap` binding without any client-side static `activationGate` literal.
+14. **Pre-Settled Order & Initial Wallet Tampering**: Non-admin `/users/{uid}` creates must start with zero `walletBalance` / `freeDeliveryRewards` / `totalSpentEgp` and `points <= 50`; non-admin `/orders/{orderId}` creates cannot set `isFinancialSettled == true`, `settlementId`, `treasuryReceiptId`, or `pointsAwarded == true`, and standard orders enforce `deliveryFee >= 15` (unless `freeDeliveryFundedByEdkawy == true`).
+

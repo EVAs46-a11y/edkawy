@@ -155,12 +155,12 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
       case 'pending':
         return (
           <div className="flex flex-col items-end gap-1.5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
               <Clock className="w-3.5 h-3.5" />
               <span>بانتظار تأكيد الطلب</span>
             </span>
             {surge && surge.isSurgeActive && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-300 bg-rose-950/50 border border-rose-500/30 px-2.5 py-0.5 rounded-xl">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border border-rose-500/30 px-2.5 py-0.5 rounded-xl">
                 <AlertTriangle className="w-3 h-3" />
                 <span>تأخر استجابة ({surge.elapsedMinutes} دقيقة)</span>
               </span>
@@ -170,12 +170,12 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
       case 'confirmed':
         return (
           <div className="flex flex-col items-end gap-1.5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>تم تأكيد الطلب · بانتظار المتجر</span>
             </span>
             {surge && surge.isSurgeActive && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-300 bg-rose-950/50 border border-rose-500/30 px-2.5 py-0.5 rounded-xl">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border border-rose-500/30 px-2.5 py-0.5 rounded-xl">
                 <AlertTriangle className="w-3 h-3" />
                 <span>تأخر استجابة ({surge.elapsedMinutes} دقيقة)</span>
               </span>
@@ -184,14 +184,14 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
         );
       case 'pending_payment':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
             <CreditCard className="w-3.5 h-3.5" />
             <span>بانتظار إتمام الدفع</span>
           </span>
         );
       case 'preparing':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-sky-500/15 text-sky-700 dark:text-blue-300 border border-sky-500/30">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
             <span>جاري التحضير بالمتجر</span>
           </span>
@@ -200,28 +200,28 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
       case 'on_the_way':
       case 'delivering':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-[#46D5D4]/20 text-[#0F766E] dark:text-[#46D5D4] border border-[#46D5D4]/40">
             <Truck className="w-3.5 h-3.5" />
             <span>في الطريق إليك مع المندوب</span>
           </span>
         );
       case 'delivered':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>تم التوصيل بنجاح</span>
           </span>
         );
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-2xl text-xs font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
             <XCircle className="w-3.5 h-3.5" />
             <span>تم إلغاء الطلب</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-2xl text-xs font-bold bg-[#0F172A] border border-[#334155] text-[#F8FAFC]">
+          <span className="inline-flex items-center px-3 py-1 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC]">
             {getOrderStatusLabel(status)}
           </span>
         );
@@ -229,27 +229,27 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 p-6 pb-28 edkawi-page-enter" dir="rtl">
+    <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6 pb-28 edkawi-page-enter" dir="rtl">
       {/* Header & Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#F8FAFC]">
+          <h1 className="text-2xl font-extrabold text-[#1E293B] dark:text-[#F8FAFC]">
             طلباتي
           </h1>
-          <p className="text-xs sm:text-sm text-[#94A3B8] mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] mt-1">
             متابعة حية وفورية لطلباتك في مدينة إدكو
           </p>
         </div>
 
         {/* Filter Chips */}
-        <div className="flex items-center gap-2 p-1.5 bg-[#1E293B] border border-[#334155] rounded-2xl overflow-x-auto text-xs font-bold">
+        <div className="flex items-center gap-2 p-1.5 bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] rounded-2xl overflow-x-auto text-xs font-bold shadow-sm">
           <button
             type="button"
             onClick={() => setFilter('all')}
             className={`px-3.5 py-2 rounded-2xl transition-all cursor-pointer whitespace-nowrap ${
               filter === 'all'
-                ? 'bg-[#FF6B00] text-white shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-[#46D5D4] text-[#0F172A] font-extrabold shadow-sm'
+                : 'text-slate-600 dark:text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-[#F8FAFC]'
             }`}
           >
             الكل ({orders.length})
@@ -259,8 +259,8 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
             onClick={() => setFilter('active')}
             className={`px-3.5 py-2 rounded-2xl transition-all cursor-pointer whitespace-nowrap ${
               filter === 'active'
-                ? 'bg-[#FF6B00] text-white shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-[#46D5D4] text-[#0F172A] font-extrabold shadow-sm'
+                : 'text-slate-600 dark:text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-[#F8FAFC]'
             }`}
           >
             النشطة ({orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length})
@@ -271,7 +271,7 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
             className={`px-3.5 py-2 rounded-2xl transition-all cursor-pointer whitespace-nowrap ${
               filter === 'delivered'
                 ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                : 'text-slate-600 dark:text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-[#F8FAFC]'
             }`}
           >
             المكتملة ({orders.filter((o) => o.status === 'delivered').length})
@@ -282,7 +282,7 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
             className={`px-3.5 py-2 rounded-2xl transition-all cursor-pointer whitespace-nowrap ${
               filter === 'cancelled'
                 ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                : 'text-slate-600 dark:text-[#94A3B8] hover:text-[#1E293B] dark:hover:text-[#F8FAFC]'
             }`}
           >
             الملغاة ({orders.filter((o) => o.status === 'cancelled').length})
@@ -293,8 +293,8 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
       {/* Loading State */}
       {isLoading && (
         <div className="py-16 text-center space-y-3">
-          <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-[#94A3B8]">
+          <Loader2 className="w-8 h-8 text-[#46D5D4] animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-slate-500 dark:text-[#94A3B8]">
             جارٍ جلب وتحديث طلباتك من السحابة...
           </p>
         </div>
@@ -302,7 +302,7 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
 
       {/* Error State */}
       {error && !isLoading && (
-        <div className="p-4 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-rose-200 text-xs sm:text-sm font-medium">
+        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-200 text-xs sm:text-sm font-medium">
           {error}
         </div>
       )}
@@ -310,7 +310,7 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
       {actionError && (
         <div
           role="alert"
-          className="p-4 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-rose-200 text-xs sm:text-sm font-medium"
+          className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-200 text-xs sm:text-sm font-medium"
         >
           {actionError}
         </div>
@@ -345,20 +345,20 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
             return (
               <article
                 key={order.id}
-                className="rounded-2xl border border-[#334155] bg-[#1E293B] shadow-lg p-6 space-y-4"
+                className="rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] shadow-[0_10px_28px_rgba(15,23,42,0.06)] dark:shadow-lg p-5 sm:p-6 space-y-4"
               >
                 {/* Header Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#334155] pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#334155] pb-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-bold text-[#F8FAFC]">
+                      <h3 className="text-lg font-extrabold text-[#1E293B] dark:text-[#F8FAFC]">
                         {order.storeName}
                       </h3>
-                      <span className="font-mono text-xs text-[#94A3B8]">
+                      <span className="font-mono text-xs text-slate-500 dark:text-[#94A3B8]">
                         #{order.id.slice(-6).toUpperCase()}
                       </span>
                     </div>
-                    <p className="text-xs text-[#94A3B8]">
+                    <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
                       {formattedDate} · الدفع: {getPaymentMethodLabel(order.paymentMethod)}
                     </p>
                   </div>
@@ -367,21 +367,21 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
 
                 {/* Items Summary */}
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold text-[#94A3B8]">
+                  <div className="text-xs font-semibold text-slate-500 dark:text-[#94A3B8]">
                     الأصناف المطلوبة ({order.items.reduce((s, it) => s + it.quantity, 0)}):
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {order.items.map((it, idx) => (
                       <span
                         key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#0F172A] border border-[#334155] text-xs text-[#F8FAFC]"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-xs text-[#1E293B] dark:text-[#F8FAFC]"
                       >
-                        <span className="font-bold text-[#FF6B00] tabular-nums">
+                        <span className="font-bold text-[#FF7100] tabular-nums">
                           {it.quantity}×
                         </span>
                         <span>{it.name}</span>
                         {it.variantLabel && (
-                          <span className="text-[11px] text-[#94A3B8]">
+                          <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
                             ({it.variantLabel})
                           </span>
                         )}
@@ -391,16 +391,16 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
                 </div>
 
                 {/* Pricing and Action Footer */}
-                <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-[#334155]">
+                <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-slate-100 dark:border-[#334155]">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xs text-[#94A3B8]">
+                    <span className="text-xs text-slate-500 dark:text-[#94A3B8]">
                       إجمالي الطلب:
                     </span>
-                    <span className="text-lg font-extrabold text-[#FF6B00] tabular-nums">
+                    <span className="text-lg font-extrabold text-[#FF7100] tabular-nums">
                       {order.totalAmount} ج.م
                     </span>
                     {order.deliveryFee > 0 && (
-                      <span className="text-[11px] text-[#94A3B8]">
+                      <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
                         (شامل {order.deliveryFee} ج.م توصيل)
                       </span>
                     )}
@@ -412,7 +412,7 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
                       <button
                         type="button"
                         onClick={() => onTrackOrder(order.id)}
-                        className="min-h-[42px] px-4 py-2 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        className="min-h-[42px] px-4 py-2 rounded-2xl bg-[#46D5D4] hover:bg-[#32B8B7] text-[#0F172A] text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
                       >
                         <Truck className="w-4 h-4" />
                         <span>تتبع الطلب لحظياً</span>
@@ -446,7 +446,7 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
                         type="button"
                         disabled={cancellingOrderId === order.id || confirmingOrderId === order.id}
                         onClick={() => setConfirmCancelOrderId(order.id)}
-                        className="min-h-[42px] px-4 py-2 rounded-2xl bg-rose-950/50 border border-rose-500/40 hover:bg-rose-900/60 text-rose-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+                        className="min-h-[42px] px-4 py-2 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-500/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
                       >
                         {cancellingOrderId === order.id ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -462,9 +462,9 @@ export const CustomerOrders: React.FC<CustomerOrdersProps> = ({
                       <button
                         type="button"
                         onClick={() => onReorder(order)}
-                        className="min-h-[42px] px-4 py-2 rounded-2xl border border-[#334155] bg-[#0F172A] hover:border-[#FF6B00] text-[#F8FAFC] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                        className="min-h-[42px] px-4 py-2 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#10192D] hover:border-[#46D5D4] text-[#1E293B] dark:text-[#F8FAFC] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
-                        <RotateCcw className="w-3.5 h-3.5 text-[#FF6B00]" />
+                        <RotateCcw className="w-3.5 h-3.5 text-[#FF7100]" />
                         <span>إعادة الطلب</span>
                       </button>
                     )}

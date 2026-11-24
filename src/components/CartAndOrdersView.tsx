@@ -201,10 +201,10 @@ export function CartPageView({
           <button
             type="button"
             onClick={onBackToShopping}
-            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-2xl bg-[#1E293B] border border-[#334155] hover:border-[#FF6B00] active:scale-[0.97] text-xs sm:text-sm font-bold text-[#F8FAFC] cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4] active:scale-[0.97] text-xs sm:text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer whitespace-nowrap"
           >
             <ArrowRight
-              className="w-4 h-4 text-[#FF6B00]"
+              className="w-4 h-4 text-[#FF7100]"
               aria-hidden="true"
             />
             <span>إضافة أصناف أخرى</span>
@@ -213,7 +213,7 @@ export function CartPageView({
           <button
             type="button"
             onClick={() => setConfirmCartAction({ type: 'clear' })}
-            className="inline-flex items-center gap-1.5 py-2.5 px-4 rounded-2xl bg-[#1E293B] border border-red-500/40 text-xs sm:text-sm font-bold text-red-400 hover:bg-red-950/40 active:scale-[0.97] cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 py-2.5 px-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-red-500/40 text-xs sm:text-sm font-bold text-red-400 hover:bg-red-950/40 active:scale-[0.97] cursor-pointer whitespace-nowrap"
           >
             <Trash2 className="w-4 h-4" aria-hidden="true" />
             <span>إفراغ السلة بالكامل</span>
@@ -224,26 +224,26 @@ export function CartPageView({
           {/* Right Column: Editable Cart Items */}
           <section
             aria-labelledby="cart-page-heading"
-            className="lg:col-span-8 rounded-2xl bg-[#1E293B] border border-[#334155] p-6"
+            className="lg:col-span-8 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-6"
           >
-            <div className="pb-5 border-b border-[#334155] flex items-center justify-between gap-3">
+            <div className="pb-5 border-b border-slate-200 dark:border-[#334155] flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-bold text-[#FF6B00]">
+                <p className="text-xs font-bold text-[#FF7100]">
                   سلة المشتريات من متجر
                 </p>
                 <h1
                   id="cart-page-heading"
-                  className="text-xl sm:text-2xl font-bold text-[#F8FAFC] mt-0.5"
+                  className="text-xl sm:text-2xl font-bold text-[#1E293B] dark:text-[#F8FAFC] mt-0.5"
                 >
                   {cart[0].storeName}
                 </h1>
               </div>
-              <span className="text-xs font-bold text-[#94A3B8]">
+              <span className="text-xs font-bold text-slate-600 dark:text-[#94A3B8]">
                 {formatArabicCartCount(totals.itemCount)}
               </span>
             </div>
 
-            <div className="divide-y divide-[#334155]">
+            <div className="divide-y divide-slate-200 dark:divide-[#334155]">
               {cart.map((entry) => {
                 const entryKey = getCartEntryKey(entry);
                 const unitPrice =
@@ -259,7 +259,7 @@ export function CartPageView({
                     className="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
                     <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-20 h-20 rounded-2xl overflow-hidden bg-[#0F172A] border border-[#334155] shrink-0">
+                      <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] shrink-0">
                         <ResilientImage
                           src={entry.item.imageUrl || ''}
                           alt={entry.item.name}
@@ -269,21 +269,21 @@ export function CartPageView({
                         />
                       </div>
                       <div className="min-w-0 space-y-1">
-                        <h2 className="text-base sm:text-lg font-bold text-[#F8FAFC] leading-snug">
+                        <h2 className="text-base sm:text-lg font-bold text-[#1E293B] dark:text-[#F8FAFC] leading-snug">
                           {entry.item.name}
                         </h2>
                         {entry.selectedVariant && (
-                          <p className="text-xs font-semibold text-[#FF6B00]">
+                          <p className="text-xs font-semibold text-[#FF7100]">
                             الخيار المحدد: {entry.selectedVariant.name}
                           </p>
                         )}
-                        <p className="text-xs sm:text-sm text-[#94A3B8]">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8]">
                           سعر الوحدة:{' '}
-                          <span className="font-mono font-semibold text-[#F8FAFC] tabular-nums">
+                          <span className="font-mono font-semibold text-[#1E293B] dark:text-[#F8FAFC] tabular-nums">
                             {unitPrice}
                           </span>{' '}
                           ج.م · الإجمالي:{' '}
-                          <span className="font-mono font-bold text-[#FF6B00] tabular-nums">
+                          <span className="font-mono font-bold text-[#FF7100] tabular-nums">
                             {unitPrice * entry.quantity}
                           </span>{' '}
                           ج.م
@@ -292,16 +292,16 @@ export function CartPageView({
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                      <div className="inline-flex items-center gap-1.5 bg-[#0F172A] border border-[#334155] p-1 rounded-2xl">
+                      <div className="inline-flex items-center gap-1.5 bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] p-1 rounded-2xl">
                         <button
                           type="button"
                           onClick={() => onUpdateQuantity(entryKey, -1)}
                           aria-label={`تقليل كمية ${entry.item.name}`}
-                          className="w-9 h-9 rounded-xl bg-[#1E293B] border border-[#334155] flex items-center justify-center text-[#F8FAFC] cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] flex items-center justify-center text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer"
                         >
                           <Minus className="w-4 h-4" aria-hidden="true" />
                         </button>
-                        <span className="w-7 text-center font-mono font-bold text-sm text-[#F8FAFC] tabular-nums">
+                        <span className="w-7 text-center font-mono font-bold text-sm text-[#1E293B] dark:text-[#F8FAFC] tabular-nums">
                           {entry.quantity}
                         </span>
                         <button
@@ -309,7 +309,7 @@ export function CartPageView({
                           disabled={reachedMax}
                           onClick={() => onUpdateQuantity(entryKey, 1)}
                           aria-label={`زيادة كمية ${entry.item.name}`}
-                          className="w-9 h-9 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-45 text-white flex items-center justify-center cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-45 text-white flex items-center justify-center cursor-pointer"
                         >
                           <Plus className="w-4 h-4" aria-hidden="true" />
                         </button>
@@ -325,7 +325,7 @@ export function CartPageView({
                           })
                         }
                         aria-label={`حذف ${entry.item.name} من السلة`}
-                        className="p-2.5 rounded-2xl border border-[#334155] bg-[#0F172A] text-red-400 hover:bg-red-950/40 cursor-pointer"
+                        className="p-2.5 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#10192D] text-red-400 hover:bg-red-950/40 cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" aria-hidden="true" />
                       </button>
@@ -339,17 +339,17 @@ export function CartPageView({
           {/* Left Column: Accurate Bill Summary */}
           <aside
             aria-labelledby="cart-summary-heading"
-            className="lg:col-span-4 rounded-2xl bg-[#1E293B] border border-[#334155] p-6 space-y-5"
+            className="lg:col-span-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-6 space-y-5"
           >
             <h2
               id="cart-summary-heading"
-              className="text-lg sm:text-xl font-bold text-[#F8FAFC]"
+              className="text-lg sm:text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC]"
             >
               ملخص الفاتورة
             </h2>
 
             <div className="space-y-3.5 text-sm">
-              <div className="flex items-center justify-between text-[#94A3B8]">
+              <div className="flex items-center justify-between text-slate-600 dark:text-[#94A3B8]">
                 <span>
                   قيمة المنتجات (
                   <span className="font-mono tabular-nums">
@@ -357,7 +357,7 @@ export function CartPageView({
                   </span>
                   )
                 </span>
-                <span className="font-semibold text-[#F8FAFC]">
+                <span className="font-semibold text-[#1E293B] dark:text-[#F8FAFC]">
                   <span className="font-mono tabular-nums">
                     {totals.subtotal}
                   </span>{' '}
@@ -365,9 +365,9 @@ export function CartPageView({
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-[#94A3B8]">
+              <div className="flex items-center justify-between text-slate-600 dark:text-[#94A3B8]">
                 <span>رسوم التوصيل المبدئية</span>
-                <span className="font-semibold text-[#F8FAFC]">
+                <span className="font-semibold text-[#1E293B] dark:text-[#F8FAFC]">
                   <span className="font-mono tabular-nums">
                     {totals.deliveryFee}
                   </span>{' '}
@@ -399,22 +399,22 @@ export function CartPageView({
 
               {/* Coupon Code Input Box (/coupons) */}
               {onApplyCoupon && (
-                <div className="pt-3 border-t border-[#334155] space-y-2.5">
+                <div className="pt-3 border-t border-slate-200 dark:border-[#334155] space-y-2.5">
                   <label
                     htmlFor="cart-coupon-input"
-                    className="block text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5"
+                    className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] flex items-center gap-1.5"
                   >
-                    <Tag className="w-3.5 h-3.5 text-[#FF6B00]" />
+                    <Tag className="w-3.5 h-3.5 text-[#FF7100]" />
                     <span>كود الخصم أو قسيمة نقاط الولاء</span>
                   </label>
 
                   {appliedCoupon ? (
-                    <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-950/50 border border-emerald-500/40 text-xs">
+                    <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-500/40 text-xs">
                       <div>
-                        <span className="font-mono font-bold text-emerald-200">
+                        <span className="font-mono font-bold text-emerald-800 dark:text-emerald-200">
                           {appliedCoupon.code}
                         </span>
-                        <span className="text-emerald-300 mr-1.5">
+                        <span className="text-emerald-700 dark:text-emerald-300 mr-1.5">
                           (خصم {appliedCoupon.discountPercent}%)
                         </span>
                       </div>
@@ -426,7 +426,7 @@ export function CartPageView({
                             setCouponFeedback(null);
                           }}
                           aria-label="إزالة كود الخصم"
-                          className="p-1 rounded-lg text-emerald-200 hover:bg-emerald-900 cursor-pointer"
+                          className="p-1 rounded-lg text-emerald-800 dark:text-emerald-200 hover:bg-emerald-900 cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -447,12 +447,12 @@ export function CartPageView({
                         }
                         placeholder="EDK25"
                         maxLength={32}
-                        className="flex-1 min-h-[42px] px-3 py-2 rounded-2xl border border-[#334155] bg-[#0F172A] text-[#F8FAFC] text-xs font-mono uppercase text-left"
+                        className="flex-1 min-h-[42px] px-3 py-2 rounded-2xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#10192D] text-[#1E293B] dark:text-[#F8FAFC] text-xs font-mono uppercase text-left"
                       />
                       <button
                         type="submit"
                         disabled={couponBusy || !couponInput.trim()}
-                        className="min-h-[42px] px-4 py-2 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-50 text-white text-xs font-bold cursor-pointer shrink-0"
+                        className="min-h-[42px] px-4 py-2 rounded-2xl bg-[#46D5D4] hover:bg-[#32B8B7] disabled:opacity-50 text-[#0F172A] text-xs font-extrabold cursor-pointer shrink-0"
                       >
                         {couponBusy ? '...' : 'تطبيق'}
                       </button>
@@ -473,9 +473,9 @@ export function CartPageView({
                 </div>
               )}
 
-              <div className="pt-4 border-t border-[#334155] flex items-center justify-between text-base font-bold text-[#F8FAFC]">
+              <div className="pt-4 border-t border-slate-200 dark:border-[#334155] flex items-center justify-between text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                 <span>الإجمالي الكلي</span>
-                <span className="text-xl text-[#FF6B00]">
+                <span className="text-xl text-[#FF7100]">
                   <span className="font-mono tabular-nums">
                     {totals.totalAmount}
                   </span>{' '}
@@ -487,7 +487,7 @@ export function CartPageView({
             {storeIsClosed && (
               <div
                 role="alert"
-                className="p-4 rounded-2xl bg-red-950/50 border border-red-500/40 text-xs sm:text-sm font-semibold text-red-200 flex items-start gap-2.5"
+                className="p-4 rounded-2xl bg-red-950/50 border border-red-500/40 text-xs sm:text-sm font-semibold text-red-800 dark:text-red-200 flex items-start gap-2.5"
               >
                 <Lock
                   className="w-4 h-4 text-red-400 shrink-0 mt-0.5"
@@ -502,7 +502,7 @@ export function CartPageView({
             {!storeIsClosed && belowMinOrder && (
               <div
                 role="status"
-                className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-xs sm:text-sm font-semibold text-amber-200"
+                className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-xs sm:text-sm font-semibold text-amber-800 dark:text-amber-200"
               >
                 الحد الأدنى للطلب من هذا المتجر هو{' '}
                 <span className="font-mono font-bold tabular-nums">
@@ -517,11 +517,11 @@ export function CartPageView({
             )}
 
             {isGuestCustomer && !storeIsClosed && (
-              <div className="p-4 rounded-2xl bg-[#0F172A] border border-[#334155] space-y-3">
-                <p className="text-xs sm:text-sm font-bold text-[#F8FAFC]">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] space-y-3">
+                <p className="text-xs sm:text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                   يلزم تسجيل الدخول قبل إنشاء الطلب
                 </p>
-                <p className="text-xs text-[#94A3B8] leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed">
                   أنت تتصفح حالياً كضيف. سجّل دخولك الآن بحساب Google أو البريد
                   الإلكتروني للمتابعة للدفع مع الاحتفاظ بجميع أصناف السلة.
                 </p>
@@ -549,7 +549,7 @@ export function CartPageView({
                         setAuthBusy(false);
                       }
                     }}
-                    className="w-full min-h-[44px] py-2.5 px-4 rounded-2xl bg-[#1E293B] hover:border-[#FF6B00] border border-[#334155] text-xs sm:text-sm font-bold text-[#F8FAFC] inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                    className="w-full min-h-[44px] py-2.5 px-4 rounded-2xl bg-white dark:bg-[#1E293B] hover:border-[#46D5D4] border border-slate-200 dark:border-[#334155] text-xs sm:text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
                   >
                     <CheckoutGoogleIcon />
                     <span>
@@ -564,7 +564,7 @@ export function CartPageView({
                     type="button"
                     disabled={authBusy}
                     onClick={onOpenLoginScreenForCheckout}
-                    className="w-full py-2 px-3 rounded-2xl text-xs font-bold text-[#FF6B00] hover:underline cursor-pointer whitespace-nowrap"
+                    className="w-full py-2 px-3 rounded-2xl text-xs font-bold text-[#FF7100] hover:underline cursor-pointer whitespace-nowrap"
                   >
                     أو تسجيل الدخول بالبريد الإلكتروني
                   </button>
@@ -572,7 +572,7 @@ export function CartPageView({
               </div>
             )}
 
-            <p className="text-xs text-[#94A3B8] leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed">
               اضغط على زر إتمام الطلب الثابت بالأسفل لتثبيت موقعك على خريطة إدكو
               وتأكيد الطلب.
             </p>
@@ -584,18 +584,18 @@ export function CartPageView({
       <div
         role="region"
         aria-label="شريط إتمام الطلب الثابت"
-        className="fixed bottom-0 inset-x-0 z-30 bg-[#0F172A]/95 backdrop-blur-md border-t border-[#334155]"
+        className="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-[#10192D]/95 backdrop-blur-md border-t border-slate-200 dark:border-[#334155]"
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs text-[#94A3B8] font-semibold">
+            <p className="text-[11px] sm:text-xs text-slate-600 dark:text-[#94A3B8] font-semibold">
               الإجمالي شامل التوصيل ({formatArabicCartCount(totals.itemCount)})
             </p>
-            <p className="text-lg sm:text-xl font-bold text-[#F8FAFC]">
+            <p className="text-lg sm:text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC]">
               <span className="font-mono tabular-nums">
                 {totals.totalAmount}
               </span>{' '}
-              <span className="text-xs sm:text-sm font-semibold text-[#94A3B8]">
+              <span className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-[#94A3B8]">
                 ج.م
               </span>
             </p>
@@ -610,7 +610,7 @@ export function CartPageView({
               }
             }}
             aria-label="المتابعة لإتمام الطلب"
-            className="py-3 px-7 sm:px-10 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.97] disabled:opacity-55 disabled:cursor-not-allowed text-white font-bold text-sm sm:text-base inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shadow-lg"
+            className="py-3 px-7 sm:px-10 rounded-2xl bg-[#46D5D4] hover:bg-[#32B8B7] active:scale-[0.97] disabled:opacity-55 disabled:cursor-not-allowed text-[#0F172A] font-extrabold shadow-lg shadow-[#46D5D4]/25 text-sm sm:text-base inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shadow-lg"
           >
             {storeIsClosed ? (
               <>
@@ -990,10 +990,10 @@ export function CheckoutPageView({
           <button
             type="button"
             onClick={onBackToCart}
-            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-2xl bg-[#1E293B] border border-[#334155] hover:border-[#FF6B00] active:scale-[0.97] text-xs sm:text-sm font-bold text-[#F8FAFC] cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4] active:scale-[0.97] text-xs sm:text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer whitespace-nowrap"
           >
             <ArrowRight
-              className="w-4 h-4 text-[#FF6B00]"
+              className="w-4 h-4 text-[#FF7100]"
               aria-hidden="true"
             />
             <span>العودة إلى السلة</span>
@@ -1004,16 +1004,16 @@ export function CheckoutPageView({
           {/* Right Column: Map Location Picker, Scheduling & Payment Form */}
           <section
             aria-labelledby="checkout-heading"
-            className="lg:col-span-7 rounded-2xl bg-[#1E293B] border border-[#334155] p-6 space-y-6"
+            className="lg:col-span-7 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-6 space-y-6"
           >
             <div>
               <h1
                 id="checkout-heading"
-                className="text-xl sm:text-2xl font-bold text-[#F8FAFC] mb-1.5"
+                className="text-xl sm:text-2xl font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5"
               >
                 تحديد الموقع على الخريطة وطريقة الدفع
               </h1>
-              <p className="text-xs sm:text-sm text-[#94A3B8]">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8]">
                 ثبّت موقع استلام طلبك فوق خريطة إدكو ثم اضغط على زر &quot;تأكيد الطلب&quot; الثابت بالأسفل.
               </p>
             </div>
@@ -1021,7 +1021,7 @@ export function CheckoutPageView({
             {storeIsClosed && (
               <div
                 role="alert"
-                className="p-4 rounded-2xl bg-red-950/50 border border-red-500/40 text-red-200 text-sm font-semibold flex items-center gap-2.5"
+                className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-500/40 text-red-800 dark:text-red-800 dark:text-red-200 text-sm font-semibold flex items-center gap-2.5"
               >
                 <Lock className="w-4 h-4 text-red-400 shrink-0" aria-hidden="true" />
                 <span>المتجر مغلق حالياً ولا يستقبل طلبات جديدة.</span>
@@ -1031,7 +1031,7 @@ export function CheckoutPageView({
             {!storeIsClosed && belowMinOrder && (
               <div
                 role="alert"
-                className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-sm font-semibold"
+                className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/40 text-amber-800 dark:text-amber-800 dark:text-amber-200 text-sm font-semibold"
               >
                 الحد الأدنى للطلب من هذا المتجر هو{' '}
                 <span className="font-mono font-bold tabular-nums">
@@ -1044,23 +1044,23 @@ export function CheckoutPageView({
             {submitError && (
               <div
                 role="alert"
-                className="p-4 rounded-2xl bg-red-950/50 border border-red-500/40 text-red-200 text-sm"
+                className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-500/40 text-red-800 dark:text-red-800 dark:text-red-200 text-sm"
               >
                 {submitError}
               </div>
             )}
 
             {isGuestCustomer ? (
-              <div className="p-6 rounded-2xl bg-[#0F172A] border border-[#334155] space-y-5">
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] space-y-5">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-base font-bold text-[#F8FAFC]">
+                  <div className="flex items-center gap-2 text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                     <Lock
-                      className="w-4 h-4 text-[#FF6B00] shrink-0"
+                      className="w-4 h-4 text-[#FF7100] shrink-0"
                       aria-hidden="true"
                     />
                     <h2>يلزم تسجيل الدخول الفعلي قبل إنشاء الطلب</h2>
                   </div>
-                  <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
                     سجّل دخولك الآن بحساب Google بضغطة واحدة أو بالبريد الإلكتروني
                     لتأكيد طلبك وتتبع المندوب مباشرة على خريطة إدكو.
                   </p>
@@ -1069,7 +1069,7 @@ export function CheckoutPageView({
                 {guestAuthError && (
                   <div
                     role="alert"
-                    className="p-3.5 rounded-2xl bg-red-950/50 border border-red-500/40 text-xs sm:text-sm font-semibold text-red-200"
+                    className="p-3.5 rounded-2xl bg-red-950/50 border border-red-500/40 text-xs sm:text-sm font-semibold text-red-800 dark:text-red-200"
                   >
                     {guestAuthError}
                   </div>
@@ -1080,7 +1080,7 @@ export function CheckoutPageView({
                     type="button"
                     disabled={guestAuthBusy}
                     onClick={handleInlineGoogleSignIn}
-                    className="min-h-[48px] py-3 px-5 rounded-2xl bg-[#1E293B] hover:border-[#FF6B00] disabled:opacity-60 border border-[#334155] text-sm font-bold text-[#F8FAFC] inline-flex items-center justify-center gap-2.5 cursor-pointer whitespace-nowrap shrink-0"
+                    className="min-h-[48px] py-3 px-5 rounded-2xl bg-white dark:bg-[#1E293B] hover:border-[#46D5D4] disabled:opacity-60 border border-slate-200 dark:border-[#334155] text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] inline-flex items-center justify-center gap-2.5 cursor-pointer whitespace-nowrap shrink-0"
                   >
                     <CheckoutGoogleIcon />
                     <span>
@@ -1098,10 +1098,10 @@ export function CheckoutPageView({
                         setShowInlineEmailAuth((prev) => !prev);
                         setGuestAuthError(null);
                       }}
-                      className="min-h-[48px] py-3 px-5 rounded-xl bg-[#1E293B] hover:bg-[#0F172A] disabled:opacity-60 text-sm font-bold text-white inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                      className="min-h-[48px] py-3 px-5 rounded-xl bg-slate-100 dark:bg-[#1E293B] hover:bg-slate-200 dark:hover:bg-[#10192D] border border-slate-200 dark:border-[#334155] disabled:opacity-60 text-sm font-bold text-[#1E293B] dark:text-white inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
                     >
                       <Mail
-                        className="w-4 h-4 text-[#FF6B00] shrink-0"
+                        className="w-4 h-4 text-[#FF7100] shrink-0"
                         aria-hidden="true"
                       />
                       <span>الدخول أو التسجيل بالبريد</span>
@@ -1112,10 +1112,10 @@ export function CheckoutPageView({
                         type="button"
                         disabled={guestAuthBusy}
                         onClick={onOpenLoginScreenForCheckout}
-                        className="min-h-[48px] py-3 px-5 rounded-xl bg-[#1E293B] hover:bg-[#0F172A] disabled:opacity-60 text-sm font-bold text-white inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                        className="min-h-[48px] py-3 px-5 rounded-xl bg-slate-100 dark:bg-[#1E293B] hover:bg-slate-200 dark:hover:bg-[#10192D] border border-slate-200 dark:border-[#334155] disabled:opacity-60 text-sm font-bold text-[#1E293B] dark:text-white inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
                       >
                         <Mail
-                          className="w-4 h-4 text-[#FF6B00] shrink-0"
+                          className="w-4 h-4 text-[#FF7100] shrink-0"
                           aria-hidden="true"
                         />
                         <span>الدخول بالبريد الإلكتروني</span>
@@ -1128,9 +1128,9 @@ export function CheckoutPageView({
                   <form
                     onSubmit={handleInlineEmailAuthSubmit}
                     noValidate
-                    className="pt-4 border-t border-[#334155] space-y-4"
+                    className="pt-4 border-t border-slate-200 dark:border-[#334155] space-y-4"
                   >
-                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-200/70 bg-[#0F172A]">
+                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-[#10192D]">
                       <button
                         type="button"
                         onClick={() => {
@@ -1139,8 +1139,8 @@ export function CheckoutPageView({
                         }}
                         className={`py-2 px-3 rounded-lg text-xs font-bold cursor-pointer whitespace-nowrap shrink-0 ${
                           inlineAuthMode === 'register'
-                            ? 'bg-[#1E293B] text-[#F8FAFC] shadow-2xs'
-                            : 'text-slate-600 text-[#94A3B8]'
+                            ? 'bg-white dark:bg-[#1E293B] text-[#1E293B] dark:text-[#F8FAFC] shadow-2xs'
+                            : 'text-slate-600 dark:text-[#94A3B8]'
                         }`}
                       >
                         إنشاء حساب عميل جديد
@@ -1153,8 +1153,8 @@ export function CheckoutPageView({
                         }}
                         className={`py-2 px-3 rounded-lg text-xs font-bold cursor-pointer whitespace-nowrap shrink-0 ${
                           inlineAuthMode === 'login'
-                            ? 'bg-[#1E293B] text-[#F8FAFC] shadow-2xs'
-                            : 'text-slate-600 text-[#94A3B8]'
+                            ? 'bg-white dark:bg-[#1E293B] text-[#1E293B] dark:text-[#F8FAFC] shadow-2xs'
+                            : 'text-slate-600 dark:text-[#94A3B8]'
                         }`}
                       >
                         لدي حساب بالفعل
@@ -1165,7 +1165,7 @@ export function CheckoutPageView({
                       <div>
                         <label
                           htmlFor="checkout-inline-name"
-                          className="block text-xs font-bold text-[#F8FAFC] mb-1"
+                          className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1"
                         >
                           الاسم بالكامل
                         </label>
@@ -1181,7 +1181,7 @@ export function CheckoutPageView({
                             onChange={(e) => setInlineAuthName(e.target.value)}
                             placeholder="أحمد محمد الإدكاوي"
                             maxLength={80}
-                            className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-[#334155] text-sm"
+                            className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#334155] text-sm"
                             required
                           />
                         </div>
@@ -1192,7 +1192,7 @@ export function CheckoutPageView({
                       <div>
                         <label
                           htmlFor="checkout-inline-email"
-                          className="block text-xs font-bold text-[#F8FAFC] mb-1"
+                          className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1"
                         >
                           البريد الإلكتروني
                         </label>
@@ -1203,7 +1203,7 @@ export function CheckoutPageView({
                           value={inlineAuthEmail}
                           onChange={(e) => setInlineAuthEmail(e.target.value)}
                           placeholder="name@example.com"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#334155] text-sm font-mono text-left"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#334155] text-sm font-mono text-left"
                           required
                         />
                       </div>
@@ -1211,7 +1211,7 @@ export function CheckoutPageView({
                       <div>
                         <label
                           htmlFor="checkout-inline-password"
-                          className="block text-xs font-bold text-[#F8FAFC] mb-1"
+                          className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1"
                         >
                           كلمة المرور
                         </label>
@@ -1222,7 +1222,7 @@ export function CheckoutPageView({
                           value={inlineAuthPassword}
                           onChange={(e) => setInlineAuthPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#334155] text-sm font-mono text-left"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#334155] text-sm font-mono text-left"
                           required
                         />
                       </div>
@@ -1231,7 +1231,7 @@ export function CheckoutPageView({
                     <button
                       type="submit"
                       disabled={guestAuthBusy}
-                      className="w-full min-h-[46px] py-2.5 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm font-bold inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+                      className="w-full min-h-[46px] py-2.5 px-5 rounded-xl bg-[#46D5D4] hover:bg-[#32B8B7] disabled:opacity-60 text-[#0F172A] text-sm font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
                     >
                       <span>
                         {guestAuthBusy
@@ -1254,9 +1254,9 @@ export function CheckoutPageView({
               >
                 {/* Step 1: Map Location & Recipient */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-[#F8FAFC]">
+                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                     <MapPin
-                      className="w-4 h-4 text-[#FF6B00]"
+                      className="w-4 h-4 text-[#FF7100]"
                       aria-hidden="true"
                     />
                     <h2>١. موقع التوصيل على خريطة مدينة إدكو</h2>
@@ -1265,7 +1265,7 @@ export function CheckoutPageView({
                   {userProfile?.savedAddresses &&
                     userProfile.savedAddresses.length > 0 && (
                       <div className="space-y-1.5">
-                        <span className="text-xs font-semibold text-[#94A3B8]">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-[#94A3B8]">
                           اختر من مواقعك المحفوظة:
                         </span>
                         <div className="flex flex-wrap gap-2">
@@ -1303,8 +1303,8 @@ export function CheckoutPageView({
                                 }}
                                 className={`px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer ${
                                   selected
-                                    ? 'bg-[#FF6B00] text-white border-[#FF6B00]'
-                                    : 'edkawi-surface border-[#334155] hover:border-[#FF6B00]'
+                                    ? 'bg-[#FF7100] text-white border-[#FF7100]'
+                                    : 'edkawi-surface border-slate-200 dark:border-[#334155] hover:border-[#46D5D4]'
                                 }`}
                               >
                                 {saved.label} · {saved.neighborhood}
@@ -1347,15 +1347,15 @@ export function CheckoutPageView({
                   />
 
                   {/* Zonal Pricing Approved Edko Zones Selector */}
-                  <div className="p-4 rounded-2xl edkawi-surface-muted border border-[#334155] space-y-3">
+                  <div className="p-4 rounded-2xl edkawi-surface-muted border border-slate-200 dark:border-[#334155] space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <label
                         htmlFor="checkout-zone-select"
-                        className="block text-xs font-bold text-[#F8FAFC]"
+                        className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC]"
                       >
                         اختر منطقتك (التسعير الجغرافي المعتمد في إدكو) *
                       </label>
-                      <span className="font-mono text-xs font-bold text-[#FF6B00] tabular-nums">
+                      <span className="font-mono text-xs font-bold text-[#FF7100] tabular-nums">
                         رسوم التوصيل: {selectedZone.deliveryFee} ج.م
                       </span>
                     </div>
@@ -1378,7 +1378,7 @@ export function CheckoutPageView({
                           setCustomerLng(coords.lng);
                         }
                       }}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#334155] bg-[#1E293B] text-sm font-semibold"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] text-sm font-semibold"
                     >
                       {activeZones.map((z) => (
                         <option key={z.id} value={z.id}>
@@ -1386,19 +1386,19 @@ export function CheckoutPageView({
                         </option>
                       ))}
                     </select>
-                    <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    <p className="text-[11px] text-slate-600 dark:text-[#94A3B8] leading-relaxed">
                       الأحياء والشوارع المشمولة في هذه المنطقة: {(selectedZone.streetsAndNeighborhoods || selectedZone.neighborhoods || []).join('، ')}
                     </p>
 
                     {availableFreeRewards > 0 && (
-                      <label className="flex items-center gap-2.5 pt-2 border-t border-slate-200/70 border-[#334155] cursor-pointer">
+                      <label className="flex items-center gap-2.5 pt-2 border-t border-slate-200 dark:border-[#334155] cursor-pointer">
                         <input
                           type="checkbox"
                           checked={useFreeDeliveryReward}
                           onChange={(e) => setUseFreeDeliveryReward(e.target.checked)}
                           className="w-4 h-4 accent-emerald-600 rounded"
                         />
-                        <span className="text-xs font-bold text-emerald-700 text-emerald-400">
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
                           استخدام مكافأة التوصيل المجاني المتاحة في حسابك (رصيدك: {availableFreeRewards} مكافأة)
                         </span>
                       </label>
@@ -1409,7 +1409,7 @@ export function CheckoutPageView({
                     <div>
                       <label
                         htmlFor="checkout-name"
-                        className="block text-xs font-bold text-[#F8FAFC] mb-1.5"
+                        className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5"
                       >
                         اسم العميل بالكامل
                       </label>
@@ -1420,7 +1420,7 @@ export function CheckoutPageView({
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="مثال: أحمد محمد الإدكاوي"
                         maxLength={80}
-                        className="w-full px-4 py-3 rounded-2xl border border-[#334155] text-sm"
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-[#334155] text-sm"
                       />
                       {errors.customerName && (
                         <p className="text-xs text-red-600 mt-1">
@@ -1432,7 +1432,7 @@ export function CheckoutPageView({
                     <div>
                       <label
                         htmlFor="checkout-phone"
-                        className="block text-xs font-bold text-[#F8FAFC] mb-1.5"
+                        className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5"
                       >
                         رقم الهاتف المحمول
                       </label>
@@ -1444,7 +1444,7 @@ export function CheckoutPageView({
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="01012345678"
                         maxLength={15}
-                        className="w-full px-4 py-3 rounded-2xl border border-[#334155] text-sm font-mono tabular-nums text-left"
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-[#334155] text-sm font-mono tabular-nums text-left"
                       />
                       {errors.customerPhone && (
                         <p className="text-xs text-red-600 mt-1">
@@ -1458,7 +1458,7 @@ export function CheckoutPageView({
                     <div>
                       <label
                         htmlFor="checkout-neighborhood"
-                        className="block text-xs font-bold text-[#F8FAFC] mb-1.5"
+                        className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5"
                       >
                         الحي / المنطقة في إدكو
                       </label>
@@ -1478,7 +1478,7 @@ export function CheckoutPageView({
                           setCustomerLat(coords.lat);
                           setCustomerLng(coords.lng);
                         }}
-                        className="w-full px-4 py-3 rounded-2xl border border-[#334155] text-sm"
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-[#334155] text-sm"
                       >
                         {EDKU_NEIGHBORHOODS.map((n) => (
                           <option key={n} value={n}>
@@ -1491,7 +1491,7 @@ export function CheckoutPageView({
                     <div>
                       <label
                         htmlFor="checkout-address"
-                        className="block text-xs font-bold text-[#F8FAFC] mb-1.5"
+                        className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5"
                       >
                         علامة مميزة أو رقم العقار والدور
                       </label>
@@ -1502,7 +1502,7 @@ export function CheckoutPageView({
                         onChange={(e) => setDeliveryAddress(e.target.value)}
                         placeholder="مثال: بجوار مسجد... الدور الثاني"
                         maxLength={200}
-                        className="w-full px-4 py-3 rounded-2xl border border-[#334155] text-sm"
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-[#334155] text-sm"
                       />
                       {errors.deliveryAddress && (
                         <p className="text-xs text-red-600 mt-1">
@@ -1515,7 +1515,7 @@ export function CheckoutPageView({
                   <div>
                     <label
                       htmlFor="checkout-notes"
-                      className="block text-xs font-bold text-[#F8FAFC] mb-1.5"
+                      className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5"
                     >
                       ملاحظات إضافية للمتجر أو المندوب (اختياري)
                     </label>
@@ -1526,16 +1526,16 @@ export function CheckoutPageView({
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="مثال: بدون شطة، يرجى الاتصال عند الوصول"
                       maxLength={200}
-                      className="w-full px-4 py-3 rounded-2xl border border-[#334155] text-sm"
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-[#334155] text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Step 2: Delivery Time / Order Scheduling */}
-                <div className="pt-5 border-t border-slate-100 border-[#334155] space-y-4">
-                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-[#F8FAFC]">
+                <div className="pt-5 border-t border-slate-200 dark:border-[#334155] space-y-4">
+                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                     <CalendarClock
-                      className="w-4 h-4 text-[#FF6B00]"
+                      className="w-4 h-4 text-[#FF7100]"
                       aria-hidden="true"
                     />
                     <h2>٢. موعد التوصيل</h2>
@@ -1547,14 +1547,14 @@ export function CheckoutPageView({
                       onClick={() => setIsScheduled(false)}
                       className={`p-4 rounded-2xl border text-right cursor-pointer ${
                         !isScheduled
-                          ? 'border-[#FF6B00] bg-[#FF6B00]/8'
-                          : 'border-[#334155] edkawi-surface'
+                          ? 'border-[#FF7100] bg-[#FF7100]/8'
+                          : 'border-slate-200 dark:border-[#334155] edkawi-surface'
                       }`}
                     >
-                      <p className="text-sm font-bold text-[#F8FAFC]">
+                      <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                         توصيل فوري الآن
                       </p>
-                      <p className="text-xs text-[#94A3B8] mt-0.5">
+                      <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-0.5">
                         يبدأ المتجر بالتحضير فور إرسال الطلب
                       </p>
                     </button>
@@ -1564,14 +1564,14 @@ export function CheckoutPageView({
                       onClick={() => setIsScheduled(true)}
                       className={`p-4 rounded-2xl border text-right cursor-pointer ${
                         isScheduled
-                          ? 'border-[#FF6B00] bg-[#FF6B00]/8'
-                          : 'border-[#334155] edkawi-surface'
+                          ? 'border-[#FF7100] bg-[#FF7100]/8'
+                          : 'border-slate-200 dark:border-[#334155] edkawi-surface'
                       }`}
                     >
-                      <p className="text-sm font-bold text-[#F8FAFC]">
+                      <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                         جدولة الطلب لوقت لاحق
                       </p>
-                      <p className="text-xs text-[#94A3B8] mt-0.5">
+                      <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-0.5">
                         اختر الساعة والتاريخ المناسب لاستلام طلبك
                       </p>
                     </button>
@@ -1579,7 +1579,7 @@ export function CheckoutPageView({
 
                   {isScheduled && (
                     <div>
-                      <label className="block text-xs font-bold text-[#F8FAFC] mb-1.5">
+                      <label className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5">
                         حدد تاريخ وساعة التوصيل المطلوبة
                       </label>
                       <input
@@ -1589,7 +1589,7 @@ export function CheckoutPageView({
                         onChange={(e) =>
                           setScheduledDateTimeLocal(e.target.value)
                         }
-                        className="w-full px-4 py-3 rounded-2xl border border-[#334155] text-sm font-mono"
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-[#334155] text-sm font-mono"
                       />
                       {errors.scheduledForIso && (
                         <p className="text-xs text-red-600 mt-1">
@@ -1601,10 +1601,10 @@ export function CheckoutPageView({
                 </div>
 
                 {/* Step 3: Payment Methods (Cash, Edkawy Wallet, Visa governed by Admin config) */}
-                <div className="pt-5 border-t border-[#334155] space-y-4">
-                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-[#F8FAFC]">
+                <div className="pt-5 border-t border-slate-200 dark:border-[#334155] space-y-4">
+                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                     <CreditCard
-                      className="w-4 h-4 text-[#FF6B00]"
+                      className="w-4 h-4 text-[#FF7100]"
                       aria-hidden="true"
                     />
                     <h2>٣. طريقة الدفع</h2>
@@ -1624,26 +1624,26 @@ export function CheckoutPageView({
                       onClick={() => setPaymentMethod('cash')}
                       className={`p-4 rounded-2xl border-2 text-right flex items-start gap-3.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                         paymentMethod === 'cash'
-                          ? 'border-[#FF6B00] bg-[#FF6B00]/10'
-                          : 'border-[#334155] bg-[#0F172A] hover:border-[#FF6B00]/60'
+                          ? 'border-[#FF7100] bg-[#FF7100]/10'
+                          : 'border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#10192D] hover:border-[#46D5D4]/60'
                       }`}
                     >
                       <Banknote
-                        className="w-5 h-5 shrink-0 mt-0.5 text-[#FF6B00]"
+                        className="w-5 h-5 shrink-0 mt-0.5 text-[#FF7100]"
                         aria-hidden="true"
                       />
                       <div className="flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-bold text-[#F8FAFC]">
+                          <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                             كاش عند الاستلام
                           </p>
                           {!cashEnabled && (
-                            <span className="text-[11px] font-bold text-[#94A3B8]">
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-[#94A3B8]">
                               غير متاح حالياً
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">
+                        <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-1 leading-relaxed">
                           ادفع نقداً لمندوب إدكاوي فور استلام طلبك لباب البيت
                         </p>
                       </div>
@@ -1653,8 +1653,8 @@ export function CheckoutPageView({
                     <div
                       className={`p-4 rounded-2xl border-2 text-right transition-colors ${
                         paymentMethod === 'wallet'
-                          ? 'border-[#FF6B00] bg-[#FF6B00]/10'
-                          : 'border-[#334155] bg-[#0F172A] hover:border-[#FF6B00]/60'
+                          ? 'border-[#FF7100] bg-[#FF7100]/10'
+                          : 'border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#10192D] hover:border-[#46D5D4]/60'
                       }`}
                     >
                       <button
@@ -1666,34 +1666,34 @@ export function CheckoutPageView({
                         className="w-full text-right flex items-start gap-3.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Wallet
-                          className="w-5 h-5 shrink-0 mt-0.5 text-[#FF6B00]"
+                          className="w-5 h-5 shrink-0 mt-0.5 text-[#FF7100]"
                           aria-hidden="true"
                         />
                         <div className="flex-1 space-y-1">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-sm font-bold text-[#F8FAFC]">
+                            <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                               محفظة إدكاوي
                             </p>
-                            <span className="text-xs font-mono font-bold text-[#FF6B00] tabular-nums">
+                            <span className="text-xs font-mono font-bold text-[#FF7100] tabular-nums">
                               الرصيد: {walletBalance} ج.م
                             </span>
                           </div>
-                          <p className="text-xs text-[#94A3B8] leading-relaxed">
+                          <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed">
                             خصم فوري من رصيد محفظتك مع استرداد تلقائي إذا تم إلغاء الطلب.
                           </p>
                         </div>
                       </button>
 
                       {paymentMethod === 'wallet' && !hasEnoughWalletBalance && (
-                        <div className="mt-3 pt-3 border-t border-[#334155] flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-amber-300">
+                        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-[#334155] flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
                             الرصيد الحالي لا يكفي ({totals.totalAmount} ج.م مطلوب).
                           </p>
                           {onOpenWalletTopup && (
                             <button
                               type="button"
                               onClick={onOpenWalletTopup}
-                              className="min-h-[36px] px-3 py-1.5 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs font-bold cursor-pointer"
+                              className="min-h-[36px] px-3 py-1.5 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs font-bold cursor-pointer"
                             >
                               شحن المحفظة الآن
                             </button>
@@ -1714,31 +1714,31 @@ export function CheckoutPageView({
                       }}
                       className={`p-4 rounded-2xl border-2 text-right flex items-start justify-between gap-3 transition-colors ${
                         !visaEnabled
-                          ? 'border-[#334155] bg-[#0F172A]/60 opacity-60 cursor-not-allowed select-none'
+                          ? 'border-slate-200 dark:border-[#334155] bg-slate-100/80 dark:bg-[#10192D]/60 opacity-60 cursor-not-allowed select-none'
                           : paymentMethod === 'visa'
-                          ? 'border-[#FF6B00] bg-[#FF6B00]/10 cursor-pointer'
-                          : 'border-[#334155] bg-[#0F172A] hover:border-[#FF6B00]/60 cursor-pointer'
+                          ? 'border-[#FF7100] bg-[#FF7100]/10 cursor-pointer'
+                          : 'border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#10192D] hover:border-[#46D5D4]/60 cursor-pointer'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <CreditCard
                           className={`w-5 h-5 shrink-0 mt-0.5 ${
-                            visaEnabled ? 'text-[#FF6B00]' : 'text-[#94A3B8]'
+                            visaEnabled ? 'text-[#FF7100]' : 'text-slate-600 dark:text-[#94A3B8]'
                           }`}
                           aria-hidden="true"
                         />
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-bold text-[#F8FAFC]">
+                            <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                               بطاقة بنكية (فيزا / ميزة)
                             </p>
                             {!visaEnabled && (
-                              <span className="px-2 py-0.5 rounded-md bg-[#334155] text-[#F8FAFC] text-[11px] font-extrabold">
+                              <span className="px-2 py-0.5 rounded-md bg-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-[11px] font-extrabold">
                                 قريباً
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">
+                          <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-1 leading-relaxed">
                             {visaEnabled
                               ? 'الدفع بالبطاقة البنكية متاح لتأكيد الطلب.'
                               : 'الدفع الإلكتروني بالبطاقات متوقف مؤقتاً وسيتوفر قريباً'}
@@ -1755,26 +1755,26 @@ export function CheckoutPageView({
           {/* Left Column: Order Review Summary */}
           <aside
             aria-labelledby="checkout-summary-heading"
-            className="lg:col-span-5 rounded-2xl bg-[#1E293B] border border-[#334155] p-6 space-y-5"
+            className="lg:col-span-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-6 space-y-5"
           >
-            <div className="pb-4 border-b border-slate-100 border-[#334155]">
-              <p className="text-xs font-bold text-[#FF6B00]">
+            <div className="pb-4 border-b border-slate-200 dark:border-[#334155]">
+              <p className="text-xs font-bold text-[#FF7100]">
                 مراجعة الأصناف من
               </p>
               <h2
                 id="checkout-summary-heading"
-                className="text-lg sm:text-xl font-bold text-[#F8FAFC] mt-0.5"
+                className="text-lg sm:text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC] mt-0.5"
               >
                 {cart[0].storeName}
               </h2>
             </div>
 
             {activeSharedCart && activeSharedCart.items.length > 0 && (
-              <div className="rounded-2xl bg-[#0F172A] bg-[#1E293B] border border-[#334155] p-4 space-y-3">
+              <div className="rounded-2xl bg-slate-50 dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#FF6B00]" />
-                    <span className="text-xs sm:text-sm font-bold text-[#F8FAFC]">
+                    <Users className="w-4 h-4 text-[#FF7100]" />
+                    <span className="text-xs sm:text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                       تفصيل الطلب الجماعي — مين ضاف إيه؟
                     </span>
                   </div>
@@ -1808,17 +1808,17 @@ export function CheckoutPageView({
                   ).map(([pUid, group]) => (
                     <div
                       key={pUid}
-                      className="rounded-xl bg-[#1E293B] border border-[#334155] p-3 space-y-1.5"
+                      className="rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-3 space-y-1.5"
                     >
                       <div className="flex items-center justify-between gap-2 text-xs font-bold">
-                        <span className="text-[#F8FAFC]">
+                        <span className="text-[#1E293B] dark:text-[#F8FAFC]">
                           {group.participantName}
                         </span>
-                        <span className="text-[#FF6B00] font-mono tabular-nums">
+                        <span className="text-[#FF7100] font-mono tabular-nums">
                           {group.subtotal} ج.م
                         </span>
                       </div>
-                      <ul className="space-y-0.5 text-[11px] text-[#94A3B8]">
+                      <ul className="space-y-0.5 text-[11px] text-slate-600 dark:text-[#94A3B8]">
                         {group.items.map((it) => (
                           <li
                             key={it.entryId}
@@ -1839,16 +1839,16 @@ export function CheckoutPageView({
               </div>
             )}
 
-            <div className="divide-y divide-[#334155]">
+            <div className="divide-y divide-slate-200 dark:divide-[#334155]">
               {totals.items.map((item, idx) => (
                 <div
                   key={`${item.productId}_${item.variantId || idx}`}
                   className="py-3 flex items-center justify-between gap-3 text-sm"
                 >
-                  <span className="text-[#F8FAFC] font-medium">
+                  <span className="text-[#1E293B] dark:text-[#F8FAFC] font-medium">
                     {item.name}
                     {item.variantLabel ? (
-                      <span className="text-[#FF6B00] text-xs font-semibold mr-1">
+                      <span className="text-[#FF7100] text-xs font-semibold mr-1">
                         ({item.variantLabel})
                       </span>
                     ) : null}{' '}
@@ -1856,7 +1856,7 @@ export function CheckoutPageView({
                       × {item.quantity}
                     </span>
                   </span>
-                  <span className="font-semibold text-[#F8FAFC] shrink-0">
+                  <span className="font-semibold text-[#1E293B] dark:text-[#F8FAFC] shrink-0">
                     <span className="font-mono tabular-nums">
                       {item.price * item.quantity}
                     </span>{' '}
@@ -1866,8 +1866,8 @@ export function CheckoutPageView({
               ))}
             </div>
 
-            <div className="pt-4 border-t border-slate-100 border-[#334155] space-y-2.5 text-sm">
-              <div className="flex items-center justify-between text-[#94A3B8]">
+            <div className="pt-4 border-t border-slate-200 dark:border-[#334155] space-y-2.5 text-sm">
+              <div className="flex items-center justify-between text-slate-600 dark:text-[#94A3B8]">
                 <span>المجموع الفرعي</span>
                 <span>
                   <span className="font-mono tabular-nums">
@@ -1876,10 +1876,10 @@ export function CheckoutPageView({
                   ج.م
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[#94A3B8]">
+              <div className="flex items-center justify-between text-slate-600 dark:text-[#94A3B8]">
                 <span>رسوم توصيل ({selectedZone.name})</span>
                 {totals.freeDeliveryApplied ? (
-                  <span className="font-bold text-emerald-700 text-emerald-400">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400">
                     مجاني (مكافأة)
                   </span>
                 ) : (
@@ -1902,22 +1902,22 @@ export function CheckoutPageView({
                 </div>
               )}
               {totals.discountAmount > 0 && (
-                <div className="flex items-center justify-between text-emerald-700 text-emerald-400 font-semibold">
+                <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400 font-semibold">
                   <span>خصم الكوبون ({totals.couponCode})</span>
                   <span className="font-mono tabular-nums">
                     - {totals.discountAmount} ج.م
                   </span>
                 </div>
               )}
-              <div className="flex items-center justify-between text-[#94A3B8]">
+              <div className="flex items-center justify-between text-slate-600 dark:text-[#94A3B8]">
                 <span>طريقة الدفع المعتمدة</span>
-                <span className="font-semibold text-[#F8FAFC]">
+                <span className="font-semibold text-[#1E293B] dark:text-[#F8FAFC]">
                   {getPaymentMethodLabel(paymentMethod)}
                 </span>
               </div>
-              <div className="pt-3 border-t border-slate-100 border-[#334155] flex items-center justify-between text-base font-bold text-[#F8FAFC]">
+              <div className="pt-3 border-t border-slate-200 dark:border-[#334155] flex items-center justify-between text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                 <span>الإجمالي النهائي</span>
-                <span className="text-xl text-[#FF6B00]">
+                <span className="text-xl text-[#FF7100]">
                   <span className="font-mono tabular-nums">
                     {totals.totalAmount}
                   </span>{' '}
@@ -1933,18 +1933,18 @@ export function CheckoutPageView({
       <div
         role="region"
         aria-label="شريط تأكيد الطلب الثابت"
-        className="fixed bottom-0 inset-x-0 z-30 bg-[#0F172A]/95 backdrop-blur-md border-t border-[#334155]"
+        className="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-[#10192D]/95 backdrop-blur-md border-t border-slate-200 dark:border-[#334155]"
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs text-[#94A3B8] font-semibold truncate">
+            <p className="text-[11px] sm:text-xs text-slate-600 dark:text-[#94A3B8] font-semibold truncate">
               {getPaymentMethodLabel(paymentMethod)} · {selectedZone.name}
             </p>
-            <p className="text-lg sm:text-xl font-bold text-[#F8FAFC]">
+            <p className="text-lg sm:text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC]">
               <span className="font-mono tabular-nums">
                 {totals.totalAmount}
               </span>{' '}
-              <span className="text-xs sm:text-sm font-semibold text-[#94A3B8]">
+              <span className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-[#94A3B8]">
                 ج.م
               </span>
             </p>
@@ -1955,7 +1955,7 @@ export function CheckoutPageView({
               type="button"
               disabled={guestAuthBusy || storeIsClosed || belowMinOrder}
               onClick={handleInlineGoogleSignIn}
-              className="py-3 px-6 sm:px-8 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm sm:text-base inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0 shadow-lg"
+              className="py-3 px-6 sm:px-8 rounded-2xl bg-[#46D5D4] hover:bg-[#32B8B7] active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed text-[#0F172A] font-extrabold shadow-lg shadow-[#46D5D4]/25 text-sm sm:text-base inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0 shadow-lg"
             >
               {storeIsClosed ? (
                 <span>المتجر مغلق حالياً</span>
@@ -1979,7 +1979,7 @@ export function CheckoutPageView({
                 isCheckoutWaterPin ||
                 (paymentMethod === 'wallet' && !hasEnoughWalletBalance)
               }
-              className="py-3 px-7 sm:px-10 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm sm:text-base inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shadow-lg"
+              className="py-3 px-7 sm:px-10 rounded-2xl bg-[#46D5D4] hover:bg-[#32B8B7] active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed text-[#0F172A] font-extrabold shadow-lg shadow-[#46D5D4]/25 text-sm sm:text-base inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shadow-lg"
             >
               {storeIsClosed ? (
                 <span>المتجر مغلق حالياً</span>
@@ -2203,24 +2203,24 @@ export function OrderTrackingView({
       <div className="max-w-2xl mx-auto px-4 sm:px-8 py-14 edkawi-page-enter">
         <div className="edkawi-soft-card p-10 sm:p-14 text-center space-y-5">
           <PackageCheck
-            className="w-10 h-10 text-[#FF6B00] mx-auto"
+            className="w-10 h-10 text-[#FF7100] mx-auto"
             aria-hidden="true"
           />
-          <h1 className="text-xl font-bold text-[#F8FAFC]">
+          <h1 className="text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC]">
             جارٍ تحميل تفاصيل الطلب...
           </h1>
           <div className="flex justify-center gap-3 pt-2">
             <button
               type="button"
               onClick={onNavigateToOrders}
-              className="py-2.5 px-5 rounded-xl bg-[#1E293B] text-white text-sm font-bold cursor-pointer"
+              className="py-2.5 px-5 rounded-xl bg-[#46D5D4] hover:bg-[#32B8B7] text-[#0F172A] text-sm font-extrabold cursor-pointer"
             >
               عرض سجل الطلبات
             </button>
             <button
               type="button"
               onClick={onNavigateToStores}
-              className="py-2.5 px-5 rounded-xl border border-[#334155] text-sm font-bold text-[#F8FAFC] cursor-pointer"
+              className="py-2.5 px-5 rounded-xl border border-slate-200 dark:border-[#334155] text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer"
             >
               العودة للمتاجر
             </button>
@@ -2316,7 +2316,7 @@ export function OrderTrackingView({
         <div
           role="status"
           aria-live="polite"
-          className="rounded-[20px] bg-emerald-950/40 border border-emerald-800 p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs"
+          className="rounded-[20px] bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-200 dark:border-emerald-800 p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs"
         >
           <div className="flex items-start gap-3.5">
             <CheckCircle2
@@ -2324,12 +2324,12 @@ export function OrderTrackingView({
               aria-hidden="true"
             />
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-emerald-100">
+              <h1 className="text-lg sm:text-xl font-bold text-emerald-900 dark:text-emerald-100">
                 {isPharmacyOrder
                   ? 'تم إرسال الروشتة / الطلب للصيدلية بنجاح'
                   : 'تم تأكيد الطلب بنجاح'}
               </h1>
-              <p className="text-xs sm:text-sm text-emerald-200 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 mt-1 leading-relaxed">
                 {isPharmacyOrder
                   ? 'تراجع الصيدلية طلبك الآن لتحديد سعر الأدوية، وسيظهر لك السعر هنا للموافقة عليه أولاً قبل التحضير.'
                   : 'تم إرسال طلبك للمتجر بنجاح. يمكنك متابعة حالته وموقع المندوب مباشرة من هذه الشاشة.'}
@@ -2339,7 +2339,7 @@ export function OrderTrackingView({
 
           <span
             dir="ltr"
-            className="font-mono text-xs font-bold text-emerald-200 tabular-nums shrink-0"
+            className="font-mono text-xs font-bold text-emerald-800 dark:text-emerald-200 tabular-nums shrink-0"
           >
             #{order.id.slice(0, 8)}
           </span>
@@ -2349,7 +2349,7 @@ export function OrderTrackingView({
       {actionError && (
         <div
           role="alert"
-          className="p-4 rounded-2xl bg-red-950/40 border border-red-800 text-xs sm:text-sm font-semibold text-red-200"
+          className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs sm:text-sm font-semibold text-red-800 dark:text-red-200"
         >
           {actionError}
         </div>
@@ -2361,7 +2361,7 @@ export function OrderTrackingView({
       {order.status === 'awaiting_customer_approval' && (
         <section className="rounded-3xl bg-gradient-to-l from-emerald-900 to-[#1E293B] text-white p-6 sm:p-8 space-y-5 shadow-xl border border-emerald-500/40">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-300">
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">
               <Pill className="w-4 h-4" />
               <span>تسعير الروشتة جاهز من {order.storeName}</span>
             </div>
@@ -2384,7 +2384,7 @@ export function OrderTrackingView({
               </p>
             </div>
             <div>
-              <p className="text-xs text-emerald-300 font-bold">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 font-bold">
                 الإجمالي كاش عند الاستلام
               </p>
               <p className="text-2xl font-extrabold text-amber-300 font-mono tabular-nums mt-0.5">
@@ -2394,7 +2394,7 @@ export function OrderTrackingView({
           </div>
 
           {order.pharmacistNote && (
-            <div className="rounded-2xl bg-white/10 px-4 py-3 text-xs sm:text-sm text-emerald-100">
+            <div className="rounded-2xl bg-white/10 px-4 py-3 text-xs sm:text-sm text-emerald-900 dark:text-emerald-100">
               <strong className="text-white">ملاحظة الصيدلي:</strong>{' '}
               {order.pharmacistNote}
             </div>
@@ -2406,7 +2406,7 @@ export function OrderTrackingView({
                 type="button"
                 disabled={approvingQuote || cancelling}
                 onClick={handleApproveQuoteClick}
-                className="flex-1 min-w-[220px] min-h-[48px] px-6 py-3 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm sm:text-base font-bold inline-flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                className="flex-1 min-w-[220px] min-h-[48px] px-6 py-3 rounded-2xl bg-[#46D5D4] hover:bg-[#32B8B7] disabled:opacity-60 text-[#0F172A] text-sm sm:text-base font-extrabold shadow-lg shadow-[#46D5D4]/25 inline-flex items-center justify-center gap-2 cursor-pointer shadow-lg"
               >
                 <CheckCircle2 className="w-5 h-5" />
                 <span>
@@ -2433,31 +2433,31 @@ export function OrderTrackingView({
        * CUSTOM ERRAND QUOTE APPROVAL CARD
        * =================================================================== */}
       {order.status === 'awaiting_customer_errand_approval' && (
-        <section className="rounded-2xl bg-[#1E293B] text-white p-6 space-y-5 shadow-xl border border-[#FF6B00]/40">
+        <section className="rounded-2xl bg-white dark:bg-[#1E293B] text-[#1E293B] dark:text-white p-6 space-y-5 shadow-xl border border-[#FF7100]/40">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF6B00]">
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF7100]">
               <Bike className="w-4 h-4" />
               <span>
                 عرض تكلفة المشوار جاهز من {order.courierName || 'كابتن إدكاوي'}
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-[#F8FAFC]">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-[#1E293B] dark:text-[#F8FAFC]">
               حدد الكابتن تكلفة تنفيذ المشوار — هل توافق ليبدأ التنفيذ الآن؟
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#0F172A] rounded-2xl p-4 border border-[#334155]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 dark:bg-[#10192D] rounded-2xl p-4 border border-slate-200 dark:border-[#334155]">
             <div>
-              <p className="text-xs text-[#94A3B8]">الكابتن المكلّف</p>
-              <p className="text-lg font-extrabold text-[#F8FAFC] mt-0.5">
+              <p className="text-xs text-slate-600 dark:text-[#94A3B8]">الكابتن المكلّف</p>
+              <p className="text-lg font-extrabold text-[#1E293B] dark:text-[#F8FAFC] mt-0.5">
                 {order.courierName || 'كابتن توصيل إدكاوي'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-[#FF6B00] font-bold">
+              <p className="text-xs text-[#FF7100] font-bold">
                 تكلفة توصيل وتنفيذ المشوار
               </p>
-              <p className="text-2xl font-extrabold text-[#F8FAFC] font-mono tabular-nums mt-0.5">
+              <p className="text-2xl font-extrabold text-[#1E293B] dark:text-[#F8FAFC] font-mono tabular-nums mt-0.5">
                 {order.totalAmount} ج.م
               </p>
             </div>
@@ -2469,7 +2469,7 @@ export function OrderTrackingView({
                 type="button"
                 disabled={approvingQuote || cancelling}
                 onClick={handleApproveErrandClick}
-                className="flex-1 min-w-[220px] min-h-[48px] px-6 py-3 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm sm:text-base font-bold inline-flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                className="flex-1 min-w-[220px] min-h-[48px] px-6 py-3 rounded-2xl bg-[#46D5D4] hover:bg-[#32B8B7] disabled:opacity-60 text-[#0F172A] text-sm sm:text-base font-extrabold shadow-lg shadow-[#46D5D4]/25 inline-flex items-center justify-center gap-2 cursor-pointer shadow-lg"
               >
                 <CheckCircle2 className="w-5 h-5" />
                 <span>
@@ -2484,7 +2484,7 @@ export function OrderTrackingView({
               type="button"
               disabled={cancelling || approvingQuote}
               onClick={() => setConfirmCancelOpen(true)}
-              className="min-h-[48px] px-5 py-3 rounded-2xl bg-[#0F172A] border border-[#334155] hover:bg-red-950/60 hover:border-red-500/40 text-red-300 text-xs sm:text-sm font-bold cursor-pointer transition-colors"
+              className="min-h-[48px] px-5 py-3 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] hover:bg-red-100 dark:hover:bg-red-950/60 hover:border-red-500/40 text-red-700 dark:text-red-300 text-xs sm:text-sm font-bold cursor-pointer transition-colors"
             >
               {cancelling ? 'جارٍ الإلغاء...' : 'رفض العرض وإلغاء المشوار'}
             </button>
@@ -2494,23 +2494,23 @@ export function OrderTrackingView({
 
       {/* Main Live Tracking Card */}
       <section className="edkawi-soft-card p-6 sm:p-9 space-y-7">
-        <div className="flex flex-wrap items-start justify-between gap-4 pb-6 border-b border-slate-100 border-[#334155]">
+        <div className="flex flex-wrap items-start justify-between gap-4 pb-6 border-b border-slate-200 dark:border-[#334155]">
           <div>
-            <p className="text-xs font-bold text-[#FF6B00] mb-1">
+            <p className="text-xs font-bold text-[#FF7100] mb-1">
               {isCustomErrand
                 ? 'متابعة مشوارك الخاص المباشر · إدكاوي'
                 : isPharmacyOrder
                 ? 'متابعة طلب الصيدلية المباشر · إدكاوي'
                 : 'شاشة تتبع الطلب المباشر · إدكاوي'}
             </p>
-            <h2 className="text-xl sm:text-2xl font-bold text-[#F8FAFC]">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#1E293B] dark:text-[#F8FAFC]">
               {order.storeName}
             </h2>
-            <p className="text-xs sm:text-sm text-[#94A3B8] mt-1">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8] mt-1">
               رقم الطلب:{' '}
               <span
                 dir="ltr"
-                className="inline-block font-mono font-semibold text-[#F8FAFC] tabular-nums"
+                className="inline-block font-mono font-semibold text-[#1E293B] dark:text-[#F8FAFC] tabular-nums"
               >
                 #{order.id.slice(0, 8)}
               </span>{' '}
@@ -2526,7 +2526,7 @@ export function OrderTrackingView({
 
         {/* 4-Stage Progress Stepper */}
         {order.status === 'cancelled' ? (
-          <div className="p-5 rounded-2xl bg-[#0F172A] border border-[#334155] text-sm font-semibold text-[#F8FAFC] flex items-center gap-2.5">
+          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-sm font-semibold text-[#1E293B] dark:text-[#F8FAFC] flex items-center gap-2.5">
             <XCircle
               className="w-5 h-5 text-slate-500 shrink-0"
               aria-hidden="true"
@@ -2545,10 +2545,10 @@ export function OrderTrackingView({
                   key={step.key}
                   className={`p-5 rounded-[18px] border ${
                     isActive
-                      ? 'border-[#FF6B00] bg-[#FF6B00]/8 shadow-2xs'
+                      ? 'border-[#FF7100] bg-[#FF7100]/8 shadow-2xs'
                       : isCompleted
-                        ? 'border-emerald-800 bg-emerald-950/30'
-                        : 'border-slate-200/80 border-[#334155] edkawi-surface-muted'
+                        ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30'
+                        : 'border-slate-200 dark:border-[#334155] edkawi-surface-muted'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -2558,9 +2558,9 @@ export function OrderTrackingView({
                     <span
                       className={`text-xs font-bold ${
                         isActive
-                          ? 'text-[#FF6B00]'
+                          ? 'text-[#FF7100]'
                           : isCompleted
-                            ? 'text-emerald-700 text-emerald-400'
+                            ? 'text-emerald-700 dark:text-emerald-400'
                             : 'text-slate-400'
                       }`}
                     >
@@ -2571,12 +2571,12 @@ export function OrderTrackingView({
                           : 'قادم'}
                     </span>
                   </div>
-                  <h3 className="text-sm font-bold text-[#F8FAFC]">
+                  <h3 className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                     {step.key === 'preparing' && order.status === 'ready'
                       ? 'جاهز لتسليم المندوب'
                       : step.title}
                   </h3>
-                  <p className="text-xs text-[#94A3B8] mt-1.5 leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-1.5 leading-relaxed">
                     {step.key === 'preparing' && order.status === 'ready'
                       ? 'تم التجهيز والتغليف وبانتظار استلام أقرب مندوب من إدكاوي'
                       : step.subtitle}
@@ -2591,9 +2591,9 @@ export function OrderTrackingView({
         {order.status === 'delivered' &&
           typeof order.pointsEarned === 'number' &&
           order.pointsEarned > 0 && (
-            <div className="rounded-2xl bg-amber-950/30 border border-amber-800 px-5 py-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-amber-200">
-                <Award className="w-5 h-5 text-[#FF6B00] shrink-0" />
+            <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-5 py-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-200">
+                <Award className="w-5 h-5 text-[#FF7100] shrink-0" />
                 <span>
                   أضيفت +{order.pointsEarned} نقطة ولاء إلى حسابك في إدكاوي من هذا الطلب!
                 </span>
@@ -2603,21 +2603,21 @@ export function OrderTrackingView({
 
         {/* Live Store Prep Time & Assigned Courier Info Card */}
         {(order.prepTimeMinutes || order.courierName || order.status === 'ready') && (
-          <div className="p-5 sm:p-6 rounded-[18px] edkawi-surface-muted border border-slate-200/80 border-[#334155] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-5 sm:p-6 rounded-[18px] edkawi-surface-muted border border-slate-200 dark:border-[#334155] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <p className="text-xs font-bold text-[#FF6B00]">
+              <p className="text-xs font-bold text-[#FF7100]">
                 متابعة التجهيز ومندوب التوصيل المباشر
               </p>
               {order.courierName ? (
                 <>
-                  <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC]">
+                  <h3 className="text-base sm:text-lg font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                     كابتن التوصيل المكلّف: {order.courierName}
                   </h3>
-                  <p className="text-xs sm:text-sm text-[#94A3B8]">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8]">
                     رقم هاتف المندوب:{' '}
                     <span
                       dir="ltr"
-                      className="font-mono font-bold text-[#F8FAFC] tabular-nums"
+                      className="font-mono font-bold text-[#1E293B] dark:text-[#F8FAFC] tabular-nums"
                     >
                       {order.courierPhone || '—'}
                     </span>
@@ -2627,13 +2627,13 @@ export function OrderTrackingView({
                   </p>
                 </>
               ) : order.status === 'ready' ? (
-                <h3 className="text-sm sm:text-base font-bold text-emerald-700 text-emerald-400">
+                <h3 className="text-sm sm:text-base font-bold text-emerald-700 dark:text-emerald-400">
                   الطلب جاهز الآن — تم إشعار مناديب إدكاوي لاستلام الشنطة وتوصيلها إليك
                 </h3>
               ) : (
-                <h3 className="text-sm sm:text-base font-bold text-[#F8FAFC]">
+                <h3 className="text-sm sm:text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                   وقت التحضير المقدر:{' '}
-                  <span className="font-mono text-[#FF6B00] tabular-nums">
+                  <span className="font-mono text-[#FF7100] tabular-nums">
                     {order.prepTimeMinutes}
                   </span>{' '}
                   دقيقة
@@ -2644,9 +2644,9 @@ export function OrderTrackingView({
             {order.courierPhone && (
               <a
                 href={`tel:${order.courierPhone}`}
-                className="py-2.5 px-5 rounded-xl bg-[#1E293B] hover:bg-[#0F172A] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
+                className="py-2.5 px-5 rounded-xl bg-slate-100 dark:bg-[#1E293B] hover:bg-slate-200 dark:hover:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
               >
-                <Phone className="w-4 h-4 text-[#FF6B00]" aria-hidden="true" />
+                <Phone className="w-4 h-4 text-[#FF7100]" aria-hidden="true" />
                 <span>اتصال بالمندوب</span>
               </a>
             )}
@@ -2660,10 +2660,10 @@ export function OrderTrackingView({
 
         {/* Post-Delivery 5-Star Store & Courier Review Card */}
         {order.status === 'delivered' && (
-          <div className="p-5 sm:p-6 rounded-[18px] edkawi-surface-muted border border-slate-200/80 border-[#334155] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-5 sm:p-6 rounded-[18px] edkawi-surface-muted border border-slate-200 dark:border-[#334155] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {existingReview ? (
               <div className="space-y-1">
-                <p className="text-sm font-bold text-[#F8FAFC] flex items-center gap-2">
+                <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] flex items-center gap-2">
                   <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
                   <span>
                     تقييمك: {existingReview.storeRating} / 5 نجوم
@@ -2673,23 +2673,23 @@ export function OrderTrackingView({
                   </span>
                 </p>
                 {existingReview.comment && (
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-slate-600 dark:text-[#94A3B8]">
                     &quot;{existingReview.comment}&quot;
                   </p>
                 )}
               </div>
             ) : order.isReviewed ? (
-              <p className="text-sm font-bold text-emerald-700 text-emerald-400 flex items-center gap-2">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>تم إرسال تقييمك لهذا الطلب بنجاح — شكراً لك!</span>
               </p>
             ) : (
               <>
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-[#F8FAFC]">
+                  <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                     كيف كانت تجربتك مع {order.storeName}؟
                   </p>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-slate-600 dark:text-[#94A3B8]">
                     قيّم المتجر والمندوب بـ 5 نجوم بعد إتمام التوصيل.
                   </p>
                 </div>
@@ -2697,7 +2697,7 @@ export function OrderTrackingView({
                   <button
                     type="button"
                     onClick={() => onOpenReviewModal(order)}
-                    className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                    className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#46D5D4] hover:bg-[#32B8B7] text-[#0F172A] text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer shrink-0"
                   >
                     <Star className="w-4 h-4 fill-white" />
                     <span>تقييم المتجر والمندوب</span>
@@ -2710,10 +2710,10 @@ export function OrderTrackingView({
 
         {/* Post-Delivery Courier Tipping Card (5 / 10 / 15 EGP) */}
         {order.status === 'delivered' && order.courierId && (
-          <div className="p-5 sm:p-6 rounded-[18px] edkawi-surface-muted border border-slate-200/80 border-[#334155] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-5 sm:p-6 rounded-[18px] edkawi-surface-muted border border-slate-200 dark:border-[#334155] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {order.isTipped || tipSuccessMsg ? (
-              <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-emerald-700 text-emerald-400">
-                <HeartHandshake className="w-5 h-5 text-[#FF6B00] shrink-0" />
+              <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                <HeartHandshake className="w-5 h-5 text-[#FF7100] shrink-0" />
                 <span>
                   {tipSuccessMsg ||
                     `تمت إضافة إكرامية ${order.tipAmountEgp ?? 10} ج.م لمحفظة كابتن التوصيل ${order.courierName || ''} — شكراً لتقديرك!`}
@@ -2722,13 +2722,13 @@ export function OrderTrackingView({
             ) : (
               <>
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-[#F8FAFC] flex items-center gap-2">
-                    <HeartHandshake className="w-4 h-4 text-[#FF6B00]" />
+                  <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] flex items-center gap-2">
+                    <HeartHandshake className="w-4 h-4 text-[#FF7100]" />
                     <span>
                       إكرامية للكابتن {order.courierName || 'مندوب إدكاوي'} تقديراً لسرعته
                     </span>
                   </p>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-slate-600 dark:text-[#94A3B8]">
                     تذهب الإكرامية بنسبة ١٠٠٪ مباشرة إلى محفظة الكابتن في إدكاوي.
                   </p>
                 </div>
@@ -2761,7 +2761,7 @@ export function OrderTrackingView({
                           setTippingAmount(null);
                         }
                       }}
-                      className="min-h-[42px] px-4 py-2 rounded-xl border border-[#334155] bg-[#1E293B] hover:border-[#FF6B00] hover:bg-[#FF6B00] hover:text-white text-xs sm:text-sm font-bold font-mono tabular-nums text-[#F8FAFC] cursor-pointer whitespace-nowrap shrink-0 transition-colors"
+                      className="min-h-[42px] px-4 py-2 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] hover:border-[#46D5D4] hover:bg-[#FF7100] hover:text-white text-xs sm:text-sm font-bold font-mono tabular-nums text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer whitespace-nowrap shrink-0 transition-colors"
                     >
                       {tippingAmount === amt ? '...' : `${amt} ج.م`}
                     </button>
@@ -2773,9 +2773,9 @@ export function OrderTrackingView({
         )}
 
         {/* Itemized Products / Prescription Details & Delivery Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-5 border-t border-slate-100 border-[#334155]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-5 border-t border-slate-200 dark:border-[#334155]">
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F8FAFC]">
+            <h3 className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
               {isCustomErrand
                 ? 'تفاصيل المشوار ونقطة الاستلام'
                 : isPharmacyOrder
@@ -2786,16 +2786,16 @@ export function OrderTrackingView({
             {isCustomErrand && (
               <div className="space-y-2.5">
                 {order.errandPickupAddress && (
-                  <div className="p-3.5 rounded-xl edkawi-surface-muted border border-[#334155] text-xs sm:text-sm text-[#F8FAFC]">
-                    <span className="font-bold text-[#FF6B00]">
+                  <div className="p-3.5 rounded-xl edkawi-surface-muted border border-slate-200 dark:border-[#334155] text-xs sm:text-sm text-[#1E293B] dark:text-[#F8FAFC]">
+                    <span className="font-bold text-[#FF7100]">
                       مكان الاستلام / البداية:{' '}
                     </span>
                     {order.errandPickupAddress}
                   </div>
                 )}
                 {order.errandDescription && (
-                  <div className="p-3.5 rounded-xl edkawi-surface-muted border border-[#334155] text-xs sm:text-sm text-[#F8FAFC]">
-                    <span className="font-bold text-[#FF6B00]">
+                  <div className="p-3.5 rounded-xl edkawi-surface-muted border border-slate-200 dark:border-[#334155] text-xs sm:text-sm text-[#1E293B] dark:text-[#F8FAFC]">
+                    <span className="font-bold text-[#FF7100]">
                       المطلوب في المشوار:{' '}
                     </span>
                     {order.errandDescription}
@@ -2807,7 +2807,7 @@ export function OrderTrackingView({
             {isPharmacyOrder && (
               <div className="space-y-3">
                 {order.prescriptionImageUrl && (
-                  <div className="rounded-2xl overflow-hidden border border-[#334155] max-h-56 bg-[#0F172A]">
+                  <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-[#334155] max-h-56 bg-slate-50 dark:bg-[#10192D]">
                     <img
                       src={order.prescriptionImageUrl}
                       alt="صورة الروشتة المرفقة"
@@ -2816,13 +2816,13 @@ export function OrderTrackingView({
                   </div>
                 )}
                 {order.prescriptionMedicineRequest && (
-                  <div className="p-3.5 rounded-xl edkawi-surface-muted border border-[#334155] text-xs sm:text-sm text-[#F8FAFC] flex items-start gap-2">
-                    <FileText className="w-4 h-4 text-[#FF6B00] shrink-0 mt-0.5" />
+                  <div className="p-3.5 rounded-xl edkawi-surface-muted border border-slate-200 dark:border-[#334155] text-xs sm:text-sm text-[#1E293B] dark:text-[#F8FAFC] flex items-start gap-2">
+                    <FileText className="w-4 h-4 text-[#FF7100] shrink-0 mt-0.5" />
                     <span>{order.prescriptionMedicineRequest}</span>
                   </div>
                 )}
                 {order.pharmacistNote && (
-                  <p className="text-xs font-semibold text-emerald-700 text-emerald-400">
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                     رد الصيدلية: {order.pharmacistNote}
                   </p>
                 )}
@@ -2830,16 +2830,16 @@ export function OrderTrackingView({
             )}
 
             {!isPharmacyOrder && !isCustomErrand && order.items && order.items.length > 0 ? (
-              <ul className="divide-y divide-[#334155] text-sm">
+              <ul className="divide-y divide-slate-200 dark:divide-[#334155] text-sm">
                 {order.items.map((item, idx) => (
                   <li
                     key={`${item.productId}_${item.variantId || idx}`}
                     className="py-2.5 flex items-center justify-between gap-2"
                   >
-                    <span className="text-[#F8FAFC]">
+                    <span className="text-[#1E293B] dark:text-[#F8FAFC]">
                       {item.name}
                       {item.variantLabel ? (
-                        <span className="text-[#FF6B00] text-xs font-semibold mr-1">
+                        <span className="text-[#FF7100] text-xs font-semibold mr-1">
                           ({item.variantLabel})
                         </span>
                       ) : null}{' '}
@@ -2847,7 +2847,7 @@ export function OrderTrackingView({
                         × {item.quantity}
                       </span>
                     </span>
-                    <span className="font-semibold text-[#F8FAFC]">
+                    <span className="font-semibold text-[#1E293B] dark:text-[#F8FAFC]">
                       <span className="font-mono tabular-nums">
                         {item.price * item.quantity}
                       </span>{' '}
@@ -2857,7 +2857,7 @@ export function OrderTrackingView({
                 ))}
               </ul>
             ) : !isPharmacyOrder && !isCustomErrand ? (
-              <p className="text-sm text-[#94A3B8]">
+              <p className="text-sm text-slate-600 dark:text-[#94A3B8]">
                 {order.itemsSummary}
               </p>
             ) : null}
@@ -2874,7 +2874,7 @@ export function OrderTrackingView({
 
             {typeof order.discountAmount === 'number' &&
               order.discountAmount > 0 && (
-                <div className="pt-2 flex items-center justify-between text-xs font-semibold text-emerald-700 text-emerald-400">
+                <div className="pt-2 flex items-center justify-between text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                   <span>خصم الكوبون ({order.couponCode || 'خصم'})</span>
                   <span className="font-mono tabular-nums">
                     - {order.discountAmount} ج.م
@@ -2882,7 +2882,7 @@ export function OrderTrackingView({
                 </div>
               )}
 
-            <div className="pt-3 border-t border-slate-100 border-[#334155] flex items-center justify-between text-base font-bold text-[#F8FAFC]">
+            <div className="pt-3 border-t border-slate-200 dark:border-[#334155] flex items-center justify-between text-base font-bold text-[#1E293B] dark:text-[#F8FAFC]">
               <span>
                 {order.status === 'awaiting_pharmacy_quote'
                   ? 'رسوم التوصيل (بانتظار تسعير الدواء)'
@@ -2890,7 +2890,7 @@ export function OrderTrackingView({
                   ? 'بانتظار عرض تكلفة المشوار من الكابتن'
                   : 'الإجمالي شامل التوصيل'}
               </span>
-              <span className="text-[#FF6B00]">
+              <span className="text-[#FF7100]">
                 <span className="font-mono tabular-nums">
                   {order.totalAmount}
                 </span>{' '}
@@ -2899,18 +2899,18 @@ export function OrderTrackingView({
             </div>
           </div>
 
-          <div className="space-y-2.5 text-sm text-[#94A3B8]">
-            <h3 className="text-sm font-bold text-[#F8FAFC]">
+          <div className="space-y-2.5 text-sm text-slate-600 dark:text-[#94A3B8]">
+            <h3 className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
               تفاصيل الموقع والدفع
             </h3>
             <p>
-              <strong className="text-[#F8FAFC]">
+              <strong className="text-[#1E293B] dark:text-[#F8FAFC]">
                 اسم العميل:
               </strong>{' '}
               {order.customerName}
             </p>
             <p>
-              <strong className="text-[#F8FAFC]">
+              <strong className="text-[#1E293B] dark:text-[#F8FAFC]">
                 رقم الهاتف:
               </strong>{' '}
               <span dir="ltr" className="font-mono tabular-nums">
@@ -2919,27 +2919,27 @@ export function OrderTrackingView({
             </p>
             {order.zoneName && (
               <p>
-                <strong className="text-[#F8FAFC]">
+                <strong className="text-[#1E293B] dark:text-[#F8FAFC]">
                   المنطقة الجغرافية:
                 </strong>{' '}
                 {order.zoneName} ({order.deliveryFee} ج.م)
               </p>
             )}
             <p>
-              <strong className="text-[#F8FAFC]">
+              <strong className="text-[#1E293B] dark:text-[#F8FAFC]">
                 موقع التوصيل:
               </strong>{' '}
               {order.deliveryNeighborhood} — {order.deliveryAddress}
             </p>
             <p>
-              <strong className="text-[#F8FAFC]">
+              <strong className="text-[#1E293B] dark:text-[#F8FAFC]">
                 طريقة الدفع:
               </strong>{' '}
               {getPaymentMethodLabel(order.paymentMethod)}
             </p>
             {order.notes && (
               <p>
-                <strong className="text-[#F8FAFC]">
+                <strong className="text-[#1E293B] dark:text-[#F8FAFC]">
                   ملاحظات:
                 </strong>{' '}
                 {order.notes}
@@ -2949,14 +2949,14 @@ export function OrderTrackingView({
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-5 border-t border-slate-100 border-[#334155] flex flex-wrap items-center justify-between gap-3">
+        <div className="pt-5 border-t border-slate-200 dark:border-[#334155] flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             {order.status === 'pending' && onConfirmPendingOrder && (
               <button
                 type="button"
                 disabled={confirming || cancelling}
                 onClick={handleConfirmPendingClick}
-                className="min-h-[44px] py-2.5 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-bold inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap shadow-sm"
+                className="min-h-[44px] py-2.5 px-5 rounded-xl bg-[#46D5D4] hover:bg-[#32B8B7] text-[#0F172A] text-xs sm:text-sm font-extrabold inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap shadow-sm"
               >
                 {confirming ? (
                   <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
@@ -2969,14 +2969,14 @@ export function OrderTrackingView({
             <button
               type="button"
               onClick={onNavigateToOrders}
-              className="py-2.5 px-5 rounded-xl bg-[#1E293B] hover:bg-[#0F172A] text-white text-xs sm:text-sm font-bold cursor-pointer whitespace-nowrap"
+              className="py-2.5 px-5 rounded-xl bg-slate-100 dark:bg-[#1E293B] hover:bg-slate-200 dark:hover:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-white text-xs sm:text-sm font-bold cursor-pointer whitespace-nowrap"
             >
               عرض كل طلباتي
             </button>
             <button
               type="button"
               onClick={onNavigateToStores}
-              className="py-2.5 px-5 rounded-xl border border-[#334155] edkawi-surface text-[#F8FAFC] text-xs sm:text-sm font-bold cursor-pointer whitespace-nowrap"
+              className="py-2.5 px-5 rounded-xl border border-slate-200 dark:border-[#334155] edkawi-surface text-[#1E293B] dark:text-[#F8FAFC] text-xs sm:text-sm font-bold cursor-pointer whitespace-nowrap"
             >
               طلب جديد من المتاجر
             </button>
@@ -2987,7 +2987,7 @@ export function OrderTrackingView({
               type="button"
               disabled={cancelling || confirming}
               onClick={() => setConfirmCancelOpen(true)}
-              className="py-2.5 px-4 rounded-2xl border border-red-500/40 bg-red-950/30 text-red-300 hover:bg-red-950/60 text-xs font-bold disabled:opacity-50 cursor-pointer whitespace-nowrap"
+              className="py-2.5 px-4 rounded-2xl border border-red-500/40 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/60 text-xs font-bold disabled:opacity-50 cursor-pointer whitespace-nowrap"
             >
               {cancelling ? 'جارٍ إلغاء الطلب...' : 'إلغاء الطلب'}
             </button>
@@ -3043,14 +3043,14 @@ function StatusIndicator({ status }: { status: OrderStatus }) {
   switch (status) {
     case 'awaiting_pharmacy_quote':
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 text-emerald-400">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
           <Pill className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{label}</span>
         </span>
       );
     case 'awaiting_customer_approval':
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#FF6B00]">
+        <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#FF7100]">
           <Pill className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{label}</span>
         </span>
@@ -3064,7 +3064,7 @@ function StatusIndicator({ status }: { status: OrderStatus }) {
       );
     case 'awaiting_customer_errand_approval':
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#FF6B00]">
+        <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#FF7100]">
           <Bike className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{label}</span>
         </span>
@@ -3085,14 +3085,14 @@ function StatusIndicator({ status }: { status: OrderStatus }) {
       );
     case 'confirmed':
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 text-emerald-400">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{label}</span>
         </span>
       );
     case 'ready':
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 text-emerald-400">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
           <PackageCheck className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{label}</span>
         </span>
@@ -3101,14 +3101,14 @@ function StatusIndicator({ status }: { status: OrderStatus }) {
     case 'on_the_way':
     case 'delivering':
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF6B00]">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF7100]">
           <Truck className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{label}</span>
         </span>
       );
     case 'delivered':
       return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 text-emerald-400">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{label}</span>
         </span>
@@ -3192,10 +3192,10 @@ export function OrdersHistoryView({
     <div className="max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-12 pb-28 space-y-7 edkawi-page-enter">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#F8FAFC]">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#1E293B] dark:text-[#F8FAFC]">
             سجل طلباتي في إدكاوي
           </h1>
-          <p className="text-sm text-[#94A3B8] mt-1">
+          <p className="text-sm text-slate-600 dark:text-[#94A3B8] mt-1">
             متابعة حية لجميع طلبات المطاعم والمتاجر وروشتات الصيدليات في إدكو
           </p>
         </div>
@@ -3206,17 +3206,17 @@ export function OrdersHistoryView({
               href={GOOGLE_PLAY_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="py-2.5 px-4 rounded-2xl bg-[#1E293B] border border-[#334155] hover:border-[#FF6B00] text-xs sm:text-sm font-bold text-[#F8FAFC] inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+              className="py-2.5 px-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4] text-xs sm:text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
             >
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
               <span>قيّمنا على Google Play</span>
-              <ExternalLink className="w-3.5 h-3.5 text-[#FF6B00]" />
+              <ExternalLink className="w-3.5 h-3.5 text-[#FF7100]" />
             </a>
           )}
           <button
             type="button"
             onClick={onNavigateToStores}
-            className="py-2.5 px-5 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] text-xs sm:text-sm font-bold text-white whitespace-nowrap shrink-0 cursor-pointer"
+            className="py-2.5 px-5 rounded-2xl bg-[#46D5D4] hover:bg-[#32B8B7] text-xs sm:text-sm font-extrabold text-[#0F172A] whitespace-nowrap shrink-0 cursor-pointer"
           >
             + طلب جديد من المتاجر
           </button>
@@ -3226,7 +3226,7 @@ export function OrdersHistoryView({
       {ordersError && (
         <div
           role="alert"
-          className="p-5 rounded-2xl bg-red-950/50 border border-red-500/40 text-red-200 text-sm"
+          className="p-5 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-500/40 text-red-800 dark:text-red-800 dark:text-red-200 text-sm"
         >
           تعذر تحميل سجل الطلبات: {ordersError}
         </div>
@@ -3235,7 +3235,7 @@ export function OrdersHistoryView({
       {historyActionError && (
         <div
           role="alert"
-          className="p-4 rounded-2xl bg-red-950/50 border border-red-500/40 text-red-200 text-sm"
+          className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-500/40 text-red-800 dark:text-red-800 dark:text-red-200 text-sm"
         >
           {historyActionError}
         </div>
@@ -3276,10 +3276,10 @@ export function OrdersHistoryView({
                 className="edkawi-soft-card-interactive p-6 sm:p-7 space-y-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#94A3B8]">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-[#94A3B8]">
                     <span
                       dir="ltr"
-                      className="inline-block font-mono font-semibold text-[#F8FAFC] tabular-nums"
+                      className="inline-block font-mono font-semibold text-[#1E293B] dark:text-[#F8FAFC] tabular-nums"
                     >
                       #{order.id.slice(0, 8)}
                     </span>
@@ -3300,15 +3300,15 @@ export function OrdersHistoryView({
 
                 <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-[#F8FAFC]">
+                    <h2 className="text-lg sm:text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                       {order.storeName}
                     </h2>
-                    <p className="text-sm text-[#94A3B8] mt-1">
+                    <p className="text-sm text-slate-600 dark:text-[#94A3B8] mt-1">
                       {order.itemsSummary}
                     </p>
                   </div>
 
-                  <p className="text-lg font-bold text-[#FF6B00] shrink-0">
+                  <p className="text-lg font-bold text-[#FF7100] shrink-0">
                     <span className="font-mono tabular-nums">
                       {order.totalAmount}
                     </span>{' '}
@@ -3318,16 +3318,16 @@ export function OrdersHistoryView({
 
                 {/* Inline Pharmacy Quote Approval Banner inside Orders History */}
                 {order.status === 'awaiting_customer_approval' && (
-                  <div className="rounded-2xl bg-emerald-950/40 border border-emerald-800 p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-200 dark:border-emerald-800 p-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-0.5">
-                      <p className="text-xs sm:text-sm font-bold text-emerald-100">
+                      <p className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-100">
                         سعر الأدوية: {order.subtotal} ج.م + توصيل {order.deliveryFee} ج.م ={' '}
-                        <span className="text-[#FF6B00]">
+                        <span className="text-[#FF7100]">
                           {order.totalAmount} ج.م
                         </span>
                       </p>
                       {order.pharmacistNote && (
-                        <p className="text-xs text-emerald-300">
+                        <p className="text-xs text-emerald-700 dark:text-emerald-300">
                           ملاحظة الصيدلية: {order.pharmacistNote}
                         </p>
                       )}
@@ -3338,7 +3338,7 @@ export function OrdersHistoryView({
                         type="button"
                         disabled={approvingId === order.id}
                         onClick={() => void handleQuickApprove(order)}
-                        className="min-h-[40px] px-4 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+                        className="min-h-[40px] px-4 py-2 rounded-xl bg-[#46D5D4] hover:bg-[#32B8B7] disabled:opacity-60 text-[#0F172A] text-xs font-extrabold cursor-pointer"
                       >
                         {approvingId === order.id
                           ? 'جارٍ التأكيد...'
@@ -3350,15 +3350,15 @@ export function OrdersHistoryView({
 
                 {/* Inline Custom Errand Quote Approval Banner inside Orders History */}
                 {order.status === 'awaiting_customer_errand_approval' && (
-                  <div className="rounded-2xl bg-[#1E293B] text-white p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="rounded-2xl bg-slate-50 dark:bg-[#1E293B] border border-[#FF7100]/40 text-[#1E293B] dark:text-white p-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-0.5">
-                      <p className="text-xs sm:text-sm font-bold text-white">
+                      <p className="text-xs sm:text-sm font-bold text-[#1E293B] dark:text-white">
                         عرض تكلفة المشوار من {order.courierName || 'كابتن إدكاوي'}:{' '}
-                        <span className="text-[#FF6B00] font-mono tabular-nums">
+                        <span className="text-[#FF7100] font-mono tabular-nums">
                           {order.totalAmount} ج.م
                         </span>
                       </p>
-                      <p className="text-xs text-slate-300">
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
                         بمجرد موافقتك ينطلق الكابتن لتنفيذ المشوار فوراً
                       </p>
                     </div>
@@ -3368,7 +3368,7 @@ export function OrdersHistoryView({
                         type="button"
                         disabled={approvingId === order.id}
                         onClick={() => void handleQuickApproveErrand(order)}
-                        className="min-h-[40px] px-4 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-xs font-bold cursor-pointer whitespace-nowrap"
+                        className="min-h-[40px] px-4 py-2 rounded-xl bg-[#46D5D4] hover:bg-[#32B8B7] disabled:opacity-60 text-[#0F172A] text-xs font-extrabold cursor-pointer whitespace-nowrap"
                       >
                         {approvingId === order.id
                           ? 'جارٍ التأكيد...'
@@ -3378,7 +3378,7 @@ export function OrdersHistoryView({
                   </div>
                 )}
 
-                <div className="pt-3 border-t border-slate-100 border-[#334155] flex flex-wrap items-center justify-between gap-3 text-xs text-[#94A3B8]">
+                <div className="pt-3 border-t border-slate-200 dark:border-[#334155] flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 dark:text-[#94A3B8]">
                   <span>
                     المستلم: {order.customerName} · {order.deliveryAddress} ·{' '}
                     {getPaymentMethodLabel(order.paymentMethod)}
@@ -3396,7 +3396,7 @@ export function OrdersHistoryView({
                         <button
                           type="button"
                           onClick={() => onOpenReviewModal(order)}
-                          className="py-1.5 px-3.5 rounded-xl bg-[#FF6B00] text-white text-xs font-bold hover:bg-[#E55F00] inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                          className="py-1.5 px-3.5 rounded-xl bg-[#FF7100] text-white text-xs font-bold hover:bg-[#E66600] inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
                         >
                           <Star className="w-3.5 h-3.5 fill-white" />
                           <span>تقييم الطلب</span>
@@ -3408,7 +3408,7 @@ export function OrdersHistoryView({
                         type="button"
                         disabled={confirmingId === order.id}
                         onClick={() => void handleConfirmOrderClick(order)}
-                        className="py-1.5 px-3.5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                        className="py-1.5 px-3.5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
                       >
                         {confirmingId === order.id ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
@@ -3426,7 +3426,7 @@ export function OrdersHistoryView({
                     <button
                       type="button"
                       onClick={() => onTrackOrder(order.id)}
-                      className="py-1.5 px-3.5 rounded-xl bg-[#FF6B00]/10 text-xs font-bold text-[#FF6B00] hover:bg-[#FF6B00]/20 cursor-pointer whitespace-nowrap"
+                      className="py-1.5 px-3.5 rounded-xl bg-[#FF7100]/10 text-xs font-bold text-[#FF7100] hover:bg-[#FF7100]/20 cursor-pointer whitespace-nowrap"
                     >
                       تفاصيل وتتبع الطلب
                     </button>

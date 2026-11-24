@@ -2,7 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { EGYPT_PHONE_REGEX, isValidFirestoreId } from './orderLogic';
+import {
+  BLUEPRINT_LIMITS,
+  DEFAULT_EDKAWY_COMMISSION_RATE,
+  EGYPT_PHONE_REGEX,
+  MIN_COURIER_DELIVERY_FEE_EGP,
+  calculateFounderFinancialKpis,
+  calculateOrderFinancialSplit,
+  getCairoDateKey,
+  isValidFirestoreId,
+} from './orderLogic';
+import {
+  ADMIN_BYPASS_PHONE,
+  isAdminBypassUser,
+  resolveGlobalGuardStatus,
+} from './systemGuardLogic';
 
 const rulesSource = fs.readFileSync(
   path.resolve(process.cwd(), 'firestore.rules'),
@@ -1078,3 +1092,441 @@ test('customer confirmation transitions: owner confirms strictly pending->confir
     /isAllowedOrderTransition\(orderId, incoming\(\), existing\(\), incoming\(\)\.diff\(existing\(\)\)\.affectedKeys\(\)\) &&\s*!isBlockedUserEntry\(\)/
   );
 });
+
+test('Edkawy Financial Policy: canonical #1001 86% / 14% / 100% split & balance verification', () => {
+  assert.equal(DEFAULT_EDKAWY_COMMISSION_RATE, 0.14);
+  assert.equal(MIN_COURIER_DELIVERY_FEE_EGP, 15);
+  assert.equal(BLUEPRINT_LIMITS.deliveryFeeMin, 15);
+
+  const split = calculateOrderFinancialSplit({
+    subtotal: 200,
+    deliveryFee: 20,
+    commissionRate: 0.14,
+  });
+
+  assert.equal(split.subtotal, 200);
+  assert.equal(split.deliveryFee, 20);
+  assert.equal(split.commissionRate, 0.14);
+  assert.equal(split.commissionAmount, 28);
+  assert.equal(split.restaurantNet, 172);
+  assert.equal(split.courierEarning, 20);
+  assert.equal(split.customerTotal, 220);
+  assert.equal(split.isBalanced, true);
+  assert.equal(
+    split.restaurantNet + split.commissionAmount + split.courierEarning,
+    220
+  );
+});
+
+test('Edkawy Financial Policy: streak-5 free delivery funds courier minimum 15 EGP by Edkawy', () => {
+  const split = calculateOrderFinancialSplit({
+    subtotal: 200,
+    deliveryFee: 0,
+    commissionRate: 0.14,
+    freeDeliveryFundedByEdkawy: true,
+  });
+
+  assert.equal(split.deliveryFee, 0);
+  assert.equal(split.commissionAmount, 28);
+  assert.equal(split.restaurantNet, 172);
+  assert.equal(split.courierEarning, 15);
+  assert.equal(split.customerTotal, 200);
+  assert.equal(split.isBalanced, true);
+});
+
+test('Edkawy Financial Policy: 5-order example & founder KPI aggregation (zero auto-deduction)', () => {
+  const stores = [
+    {
+      id: 'store_1',
+      name: 'مطعم إدكو للمشويات',
+      category: 'مشويات ومطاعم' as const,
+      neighborhood: 'شارع البحر',
+      description: 'مشويات طازجة',
+      deliveryFee: 20,
+      deliveryTimeMinutes: 30,
+      rating: 4.9,
+      reviewCount: 12,
+      minOrder: 50,
+      imageKey: 'grills' as const,
+      isOpen: true,
+      isActive: true,
+      commissionRate: 0.14,
+      menu: [],
+      menuItems: [],
+      createdBy: 'admin_1',
+      createdAtIso: '2026-11-01T10:00:00.000Z',
+    },
+  ];
+
+  const deliveredOrders = Array.from({ length: 5 }, (_, idx) => ({
+    id: `ord_${1001 + idx}`,
+    customerId: `cust_${idx + 1}`,
+    storeId: 'store_1',
+    storeName: 'مطعم إدكو للمشويات',
+    customerName: 'عميل إدكو',
+    customerPhone: '01012345678',
+    deliveryNeighborhood: 'شارع البحر',
+    deliveryAddress: 'شارع البحر بجوار المسجد الكبير',
+    items: [],
+    itemsSummary: 'وجبة مشويات × 1',
+    itemNames: ['وجبة مشويات (1)'],
+    itemCount: 1,
+    subtotal: 200,
+    deliveryFee: 20,
+    totalAmount: 220,
+    commissionRate: 0.14,
+    commissionAmount: 28,
+    restaurantNet: 172,
+    courierDeliveryCompensation: 20,
+    paymentMethod: 'cash' as const,
+    status: 'delivered' as const,
+    notes: '',
+    createdAtIso: '2026-11-23T10:00:00.000Z',
+    updatedAtIso: '2026-11-23T10:30:00.000Z',
+  }));
+
+  // Include a test simulation order that must be excluded from KPIs
+  const orders = [
+    ...deliveredOrders,
+    {
+      ...deliveredOrders[0],
+      id: 'ord_test_sim',
+      isTestSimulation: true,
+      subtotal: 9999,
+      totalAmount: 9999,
+    },
+  ];
+
+  const wallets = [
+    {
+      courierId: 'drv_1',
+      courierName: 'أحمد المندوب',
+      collectionCustody: 100, // 1100 collected - 1000 handed over
+      courierDues: 100, // 5 * 20 EGP intact (no auto-deduction)
+      handedOverAmount: 1000,
+      totalDuesPaid: 0,
+      totalOrdersDelivered: 5,
+      updatedAtIso: '2026-11-23T12:00:00.000Z',
+    },
+  ];
+
+  const receipts = [
+    {
+      id: 'tr_1',
+      receiptNumber: 'TR-20261123-1001',
+      courierId: 'drv_1',
+      courierName: 'أحمد المندوب',
+      ordersCount: 5,
+      expectedAmount: 1100,
+      actualAmount: 1000,
+      varianceAmount: -100,
+      courierDuesSnapshot: 100,
+      orderIds: ['ord_1001', 'ord_1002', 'ord_1003', 'ord_1004', 'ord_1005'],
+      receivedByUid: 'admin_1',
+      receivedByName: 'المدير',
+      notes: 'توريد جزئي مع تسجيل عجز للمراجعة اليدوية',
+      createdAtIso: '2026-11-23T12:00:00.000Z',
+    },
+  ];
+
+  const exceptions = [
+    {
+      id: 'ex_1',
+      orderId: 'ord_1005',
+      exceptionType: 'cash_shortage' as const,
+      courierId: 'drv_1',
+      disputedAmount: 100,
+      holdSettlement: false,
+      description: 'عجز نقدي بانتظار المراجعة اليدوية',
+      status: 'pending_review' as const,
+      createdBy: 'admin_1',
+      createdAtIso: '2026-11-23T12:05:00.000Z',
+    },
+  ];
+
+  const kpis = calculateFounderFinancialKpis({
+    orders,
+    stores,
+    wallets,
+    receipts,
+    settlements: [],
+    exceptions,
+  });
+
+  assert.equal(kpis.deliveredOrdersCount, 5);
+  assert.equal(kpis.totalStoreSales, 1000);
+  assert.equal(kpis.totalEdkawyCommissions, 140);
+  assert.equal(kpis.totalDeliveryFees, 100);
+  assert.equal(kpis.totalCourierDues, 100);
+  assert.equal(kpis.totalHandedOverGross, 1000);
+  assert.equal(kpis.cashHeldByCouriers, 100);
+  assert.equal(kpis.unpaidStorePayables, 860);
+  assert.equal(kpis.cashShortageTotal, 100);
+  assert.equal(kpis.cashVarianceNet, -100);
+  assert.equal(kpis.pendingExceptionsCount, 1);
+
+  assert.match(getCairoDateKey('2026-11-23T22:30:00.000Z'), /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('Edkawy Financial Policy: firestore.rules enforces financial collections', () => {
+  assert.match(rulesSource, /match \/driver_wallets\/\{courierId\}/);
+  assert.match(rulesSource, /match \/transactions\/\{txId\}/);
+  assert.match(rulesSource, /match \/treasury_receipts\/\{receiptId\}/);
+  assert.match(rulesSource, /match \/restaurant_settlements\/\{settlementId\}/);
+  assert.match(rulesSource, /match \/financial_exceptions\/\{exceptionId\}/);
+});
+
+test('Security Hardening: zero legacy activationGate or wildcard vortexstore.admin alias in firestore.rules', () => {
+  assert.equal(rulesSource.includes('activationGate'), false);
+  assert.equal(rulesSource.includes('vortexstore.admin.'), false);
+  assert.equal(rulesSource.includes('vortexstore.admin@adkawy.com'), false);
+  assert.match(
+    rulesSource,
+    /match \/admins\/\{adminId\}[\s\S]*?request\.auth\.token\.email_verified == true/
+  );
+  assert.match(
+    rulesSource,
+    /isValidAdminEmailValue\(email\)[\s\S]*?'vortexstore\.team@gmail\.com'[\s\S]*?'alaslybys46@gmail\.com'/
+  );
+});
+
+test('Security Hardening: non-admin user creation cannot inflate walletBalance, totalSpentEgp, or rewards', () => {
+  assert.match(
+    rulesSource,
+    /match \/users\/\{userId\}[\s\S]*?allow create:[\s\S]*?incoming\(\)\.walletBalance == 0/
+  );
+  assert.match(
+    rulesSource,
+    /incoming\(\)\.freeDeliveryRewards == 0/
+  );
+  assert.match(
+    rulesSource,
+    /incoming\(\)\.totalSpentEgp == 0/
+  );
+  assert.match(
+    rulesSource,
+    /incoming\(\)\.points <= 50/
+  );
+});
+
+test('Security Hardening: strict order create blocks client-side financial settlement tampering and <15 EGP fees', () => {
+  assert.match(
+    rulesSource,
+    /match \/orders\/\{orderId\}[\s\S]*?allow create:[\s\S]*?!\(incoming\(\)\.get\('isFinancialSettled', false\) == true\)/
+  );
+  assert.match(
+    rulesSource,
+    /!\('settlementId' in incoming\(\)\)/
+  );
+  assert.match(
+    rulesSource,
+    /!\('treasuryReceiptId' in incoming\(\)\)/
+  );
+  assert.match(
+    rulesSource,
+    /!\(incoming\(\)\.get\('pointsAwarded', false\) == true\)/
+  );
+  assert.match(
+    rulesSource,
+    /isStrictNewOrderCreate\(data\)[\s\S]*?data\.deliveryFee >= 15 \|\| data\.get\('freeDeliveryFundedByEdkawy', false\) == true/
+  );
+});
+
+test('Invitation Re-Onboarding: courier and courierDirectory allow pending/rejected self re-onboarding with verified pending invite', () => {
+  assert.match(
+    rulesSource,
+    /match \/couriers\/\{courierId\}[\s\S]*?existing\(\)\.approvalStatus in \['pending', 'rejected'\]/
+  );
+  assert.match(
+    rulesSource,
+    /match \/courierDirectory\/\{courierId\}[\s\S]*?incoming\(\)\.approvalStatus == 'pending'/
+  );
+  assert.match(
+    rulesSource,
+    /match \/sales_agents\/\{agentId\}[\s\S]*?isValidPendingInviteAcceptance\(incoming\(\)\.inviteToken, 'sales_agent'\)/
+  );
+});
+
+test('GlobalSystemGuard: admin phone 01032874716 and admin role bypass both maintenanceMode and registrationMode', () => {
+  assert.equal(ADMIN_BYPASS_PHONE, '01032874716');
+
+  // Admin phone on userProfile passes even before portal resolves from customer
+  assert.equal(
+    isAdminBypassUser({
+      user: { email: 'owner@edkawy.com', emailVerified: true, isAnonymous: false, phoneNumber: null },
+      userProfile: { phone: '01032874716', role: 'customer' },
+      activePortal: 'customer',
+    }),
+    true
+  );
+
+  // Admin phone with +20 prefix on Firebase Auth passes
+  assert.equal(
+    isAdminBypassUser({
+      user: { email: null, emailVerified: false, isAnonymous: false, phoneNumber: '+201032874716' },
+      userProfile: null,
+      activePortal: 'customer',
+    }),
+    true
+  );
+
+  // Admin portal role passes
+  assert.equal(
+    isAdminBypassUser({
+      user: { email: 'admin@edkawy.com', emailVerified: true, isAnonymous: false },
+      userProfile: null,
+      activePortal: 'admin',
+    }),
+    true
+  );
+
+  // Anonymous or regular customer does NOT bypass
+  assert.equal(
+    isAdminBypassUser({
+      user: { email: null, emailVerified: false, isAnonymous: true, phoneNumber: '+201032874716' },
+      userProfile: { phone: '01032874716', role: 'admin' },
+      activePortal: 'admin',
+    }),
+    false
+  );
+  assert.equal(
+    isAdminBypassUser({
+      user: { email: 'user@edku.eg', emailVerified: true, isAnonymous: false },
+      userProfile: { phone: '01099998888', role: 'customer' },
+      activePortal: 'customer',
+    }),
+    false
+  );
+
+  // Guard state resolution matrix
+  assert.equal(
+    resolveGlobalGuardStatus({
+      isAdminBypass: true,
+      isSystemConfigLoading: true,
+      maintenanceMode: true,
+      registrationMode: true,
+    }),
+    'allow'
+  );
+  assert.equal(
+    resolveGlobalGuardStatus({
+      isAdminBypass: false,
+      isSystemConfigLoading: true,
+      maintenanceMode: false,
+      registrationMode: false,
+    }),
+    'loading'
+  );
+  assert.equal(
+    resolveGlobalGuardStatus({
+      isAdminBypass: false,
+      isSystemConfigLoading: false,
+      maintenanceMode: true,
+      registrationMode: true,
+    }),
+    'maintenance'
+  );
+  assert.equal(
+    resolveGlobalGuardStatus({
+      isAdminBypass: false,
+      isSystemConfigLoading: false,
+      maintenanceMode: false,
+      registrationMode: true,
+    }),
+    'pre_registration'
+  );
+  assert.equal(
+    resolveGlobalGuardStatus({
+      isAdminBypass: false,
+      isSystemConfigLoading: false,
+      maintenanceMode: false,
+      registrationMode: false,
+    }),
+    'allow'
+  );
+});
+
+test('System Config Rules: firestore.rules allows registrationMode and registrationMessage in appConfig/system', () => {
+  assert.match(
+    rulesSource,
+    /function isValidSystemConfig\(data\)[\s\S]*?'registrationMode'[\s\S]*?'registrationMessage'/
+  );
+  assert.match(
+    rulesSource,
+    /match \/appConfig\/\{configId\}[\s\S]*?'registrationMode'[\s\S]*?'registrationMessage'/
+  );
+});
+
+test('v2.2.0.1 Rules & Version: strict UID-isolated /users/{uid}/private/{docId}, review photoUrls, campaign flash/occasion fields, and version 2.2.0.1', () => {
+  const versionRaw = fs.readFileSync(
+    path.resolve(process.cwd(), 'version.json'),
+    'utf8'
+  );
+  const versionJson = JSON.parse(versionRaw) as { version?: string };
+  assert.equal(versionJson.version, '2.2.0.1');
+
+  assert.match(
+    rulesSource,
+    /match \/private\/\{docId\}\s*\{[\s\S]*?request\.auth\.uid == userId[\s\S]*?incoming\(\)\.items\.size\(\) <= 30/
+  );
+  assert.match(
+    rulesSource,
+    /'photoUrls'[\s\S]*?data\.photoUrls\.size\(\) <= 3/
+  );
+  assert.match(
+    rulesSource,
+    /'isFlashDeal'[\s\S]*?'occasionTag'/
+  );
+
+  function canAccessPrivateCart(
+    env: SimulatedEnv,
+    targetUserId: string,
+    docId: string,
+    payload?: { uid: string; items: unknown[]; updatedAt: number }
+  ): 'ALLOW' | 'PERMISSION_DENIED' {
+    if (!env.auth || !isValidFirestoreId(targetUserId) || !isValidFirestoreId(docId)) {
+      return 'PERMISSION_DENIED';
+    }
+    if (env.auth.uid !== targetUserId) return 'PERMISSION_DENIED';
+    if (!payload) return 'ALLOW';
+    if (payload.uid !== targetUserId) return 'PERMISSION_DENIED';
+    if (!Array.isArray(payload.items) || payload.items.length > 30) {
+      return 'PERMISSION_DENIED';
+    }
+    if (payload.updatedAt !== env.nowMs) return 'PERMISSION_DENIED';
+    return 'ALLOW';
+  }
+
+  assert.equal(
+    canAccessPrivateCart({ ...baseEnv, auth: null }, 'customer_1', 'cart'),
+    'PERMISSION_DENIED'
+  );
+  assert.equal(
+    canAccessPrivateCart(
+      { ...baseEnv, auth: { uid: 'other_user' } },
+      'customer_1',
+      'cart'
+    ),
+    'PERMISSION_DENIED'
+  );
+  assert.equal(
+    canAccessPrivateCart(baseEnv, 'customer_1', 'cart', {
+      uid: 'customer_1',
+      items: Array.from({ length: 31 }, (_, i) => ({ id: i })),
+      updatedAt: baseEnv.nowMs,
+    }),
+    'PERMISSION_DENIED'
+  );
+  assert.equal(
+    canAccessPrivateCart(baseEnv, 'customer_1', 'cart', {
+      uid: 'customer_1',
+      items: [{ storeId: 's1', quantity: 1 }],
+      updatedAt: baseEnv.nowMs,
+    }),
+    'ALLOW'
+  );
+});
+
+
+
+

@@ -83,9 +83,9 @@ export async function compressDeviceImageToDataUrl(
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(img, 0, 0, width, height);
 
-  // Try WebP first, then JPEG, stepping down quality/dimensions if needed
+  // Always prioritize WebP for optimal payload & CDN efficiency, stepping down quality if needed
   const mimeCandidates = ['image/webp', 'image/jpeg'];
-  const qualitySteps = [initialQuality, 0.66, 0.54, 0.42];
+  const qualitySteps = [initialQuality, 0.72, 0.58, 0.44];
 
   for (const mime of mimeCandidates) {
     for (const q of qualitySteps) {
@@ -99,10 +99,10 @@ export async function compressDeviceImageToDataUrl(
     }
   }
 
-  // Compact pass at 600px then 480px max dimension if still above limit
+  // Compact WebP pass at 640px then 480px max dimension if still above Firestore limit
   for (const [dimLimit, fallbackQ] of [
-    [600, 0.5],
-    [480, 0.45],
+    [640, 0.52],
+    [480, 0.44],
   ] as const) {
     const compactScale = Math.min(1, dimLimit / Math.max(width, height));
     canvas.width = Math.max(1, Math.round(width * compactScale));
@@ -113,9 +113,14 @@ export async function compressDeviceImageToDataUrl(
       compactCtx.fillRect(0, 0, canvas.width, canvas.height);
       compactCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }
-    const fallbackEncoded = canvas.toDataURL('image/jpeg', fallbackQ);
-    if (fallbackEncoded.length <= maxAllowedChars) {
-      return fallbackEncoded;
+    for (const fallbackMime of mimeCandidates) {
+      const fallbackEncoded = canvas.toDataURL(fallbackMime, fallbackQ);
+      if (
+        fallbackEncoded.startsWith(`data:${fallbackMime}`) &&
+        fallbackEncoded.length <= maxAllowedChars
+      ) {
+        return fallbackEncoded;
+      }
     }
   }
 

@@ -3,7 +3,7 @@ interface AdkawyLogoProps {
   className?: string;
 }
 
-function AdkawyPinEmblem({ className = 'w-14 h-16' }: { className?: string }) {
+export function AdkawyPinEmblem({ className = 'w-14 h-16' }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 120 138"
@@ -12,16 +12,11 @@ function AdkawyPinEmblem({ className = 'w-14 h-16' }: { className?: string }) {
       aria-hidden="true"
       className={className}
     >
-      {/* Teardrop Map Location Pin (#1E293B) */}
       <path
         d="M60 4C31.28 4 8 27.28 8 56C8 86.4 47.6 123.5 56.55 131.52C58.51 133.27 61.49 133.27 63.45 131.52C72.4 123.5 112 86.4 112 56C112 27.28 88.72 4 60 4Z"
         fill="#1E293B"
       />
-
-      {/* Inner White Circular Cutout */}
       <circle cx="60" cy="54" r="32" fill="#FFFFFF" />
-
-      {/* White Halo Underlay for Scooter Wheels & Speed Streaks Overlapping Pin */}
       <circle cx="43" cy="74" r="11.5" fill="#FFFFFF" />
       <circle cx="84" cy="74" r="11.5" fill="#FFFFFF" />
       <path
@@ -29,56 +24,40 @@ function AdkawyPinEmblem({ className = 'w-14 h-16' }: { className?: string }) {
         fill="#FFFFFF"
       />
       <rect x="27" y="40" width="23" height="21" rx="3" fill="#FFFFFF" />
-
-      {/* Speed Streaks (Left of Scooter) */}
       <path
         d="M9 60.5H32.5C33.88 60.5 35 61.62 35 63C35 64.38 33.88 65.5 32.5 65.5H15C13.62 65.5 12.5 64.38 12.5 63"
-        fill="#FF6B00"
+        fill="#FF7100"
       />
-      <rect x="8" y="59" width="25" height="3.6" rx="1.8" fill="#FF6B00" />
-      <rect x="15" y="65" width="17" height="3.4" rx="1.7" fill="#FF6B00" />
-
-      {/* Rear Delivery Box (#FF6B00) */}
-      <rect x="30" y="42.5" width="18" height="4" rx="1.2" fill="#FF6B00" />
-      <rect x="30.5" y="48" width="17" height="11" rx="1.5" fill="#FF6B00" />
+      <rect x="8" y="59" width="25" height="3.6" rx="1.8" fill="#FF7100" />
+      <rect x="15" y="65" width="17" height="3.4" rx="1.7" fill="#FF7100" />
+      <rect x="30" y="42.5" width="18" height="4" rx="1.2" fill="#FF7100" />
+      <rect x="30.5" y="48" width="17" height="11" rx="1.5" fill="#FF7100" />
       <rect x="37.8" y="46.2" width="2.4" height="4.2" rx="0.8" fill="#FFFFFF" />
-
-      {/* Scooter Seat */}
-      <rect x="49.5" y="52.5" width="16" height="5" rx="2.5" fill="#FF6B00" />
-
-      {/* Scooter Body, Floorboard, Front Apron & Rear Fender */}
+      <rect x="49.5" y="52.5" width="16" height="5" rx="2.5" fill="#FF7100" />
       <path
         d="M32 71C32 63.2 38.2 58.5 46.5 58.5H59C57.5 62.5 57.5 66.8 61.5 68.2H71.5C73.8 64.2 75.5 56.5 73.2 47.5L70 48.3C68.9 48.6 67.8 47.9 67.5 46.8C67.2 45.7 67.9 44.6 69 44.3L76.5 42.2C78.8 41.6 81 43.1 81.4 45.4C81.8 47.6 80.2 49.6 78 49.9L81.8 61.8C87.8 62.3 92.8 66.2 94.2 71.5H32V71Z"
-        fill="#FF6B00"
+        fill="#FF7100"
       />
-
-      {/* Headlight Cutout Accent */}
       <circle cx="79.2" cy="45.8" r="1.7" fill="#FFFFFF" />
-
-      {/* Rear Wheel */}
       <circle
         cx="43"
         cy="74"
         r="8.2"
         fill="#FFFFFF"
-        stroke="#FF6B00"
+        stroke="#FF7100"
         strokeWidth="4.2"
       />
-      <circle cx="43" cy="74" r="2.5" fill="#FF6B00" />
-
-      {/* Front Wheel */}
+      <circle cx="43" cy="74" r="2.5" fill="#FF7100" />
       <circle
         cx="84"
         cy="74"
         r="8.2"
         fill="#FFFFFF"
-        stroke="#FF6B00"
+        stroke="#FF7100"
         strokeWidth="4.2"
       />
-      <circle cx="84" cy="74" r="2.5" fill="#FF6B00" />
-
-      {/* Clean Masking Line Under Fender Base */}
-      <rect x="52" y="71.5" width="21" height="2.8" rx="1.4" fill="#FF6B00" />
+      <circle cx="84" cy="74" r="2.5" fill="#FF7100" />
+      <rect x="52" y="71.5" width="21" height="2.8" rx="1.4" fill="#FF7100" />
     </svg>
   );
 }
@@ -92,13 +71,13 @@ export function AdkawyLogo({
       <div
         className={`inline-flex flex-col items-center select-none ${className}`}
       >
-        <AdkawyPinEmblem className="w-20 h-24 sm:w-24 sm:h-28" />
-        <span className="mt-1 text-3xl sm:text-4xl font-bold text-[#FF6B00] leading-none tracking-tight">
+        <AdkawyPinEmblem className="w-20 h-24 sm:w-24 sm:h-28 drop-shadow-md" />
+        <span className="mt-1 text-3xl sm:text-4xl font-extrabold text-[#FF7100] leading-none tracking-tight">
           إدكاوي
         </span>
         <span
           dir="ltr"
-          className="mt-1.5 text-sm sm:text-base font-bold tracking-[0.2em] text-[#F8FAFC] leading-none"
+          className="mt-1.5 text-sm sm:text-base font-extrabold tracking-[0.2em] text-[#1E293B] dark:text-[#F8FAFC] leading-none"
         >
           EDKAWY
         </span>
@@ -111,12 +90,12 @@ export function AdkawyLogo({
       className={`inline-flex items-center gap-2 whitespace-nowrap shrink-0 select-none ${className}`}
     >
       <AdkawyPinEmblem className="w-8 h-9 shrink-0" />
-      <span className="text-lg sm:text-xl font-bold tracking-tight text-[#FF6B00]">
+      <span className="text-lg sm:text-xl font-extrabold tracking-tight text-[#FF7100]">
         إدكاوي
       </span>
       <span
         dir="ltr"
-        className="hidden sm:inline text-[11px] font-bold tracking-[0.16em] text-[#94A3B8]"
+        className="hidden sm:inline text-[11px] font-bold tracking-[0.16em] text-[#64748B] dark:text-[#94A3B8]"
       >
         EDKAWY
       </span>

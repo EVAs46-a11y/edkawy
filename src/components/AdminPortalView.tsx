@@ -17,6 +17,7 @@ import {
   Gift,
   Headphones,
   KeyRound,
+  Landmark,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -40,6 +41,7 @@ import {
   TrendingUp,
   Truck,
   UserCheck,
+  UserPlus,
   Users,
   Wallet,
   Wrench,
@@ -59,6 +61,7 @@ import {
   Legend,
   CartesianGrid,
 } from 'recharts';
+import { auth } from '../firebase';
 import {
   adminCreateInvitationInFirestore,
   adminProcessPayoutRequestInFirestore,
@@ -68,6 +71,7 @@ import {
   adminUpdateSalesAgentCommissionInFirestore,
   approveStoreJoinRequestInFirestore,
   buildInvitationRegistrationUrl,
+  fetchDemandForecastFromServer,
   listenToAdminInvitations,
   listenToAdminPayoutRequests,
   listenToAdminSalesAgents,
@@ -80,6 +84,7 @@ import {
   updateSystemMaintenanceByAdminInFirestore,
 } from '../services/edkawiFirebaseService';
 import {
+  DemandForecastResult,
   EdkoZoneRecord,
   InvitationRecord,
   PayoutRequestRecord,
@@ -115,17 +120,22 @@ import {
   CourierVehicleType,
   CustomerBanType,
   CustomerDirectoryEntry,
+  DriverWalletRecord,
   FirebaseConnectionHealthResult,
+  FinancialExceptionRecord,
+  FinancialTransactionRecord,
   OrderRecord,
   OrderStatus,
   PaymentMethodsConfig,
   ProductRecord,
   QaSimulationReport,
+  RestaurantSettlementRecord,
   StaffMemberRecord,
   StoreCredentialRecord,
   StoreRecord,
   SupportTicketRecord,
   SystemMaintenanceConfig,
+  TreasuryReceiptRecord,
   WalletTopupRequestRecord,
 } from '../types/edkawi';
 import {
@@ -133,6 +143,7 @@ import {
   computeFraudDetectionAlerts,
   COURIER_VEHICLE_TYPES,
   EDKU_NEIGHBORHOODS,
+  MIN_COURIER_DELIVERY_FEE_EGP,
   filterAdminCustomers,
   formatAppErrorMessage,
   getAuditActionLabelAr,
@@ -143,6 +154,8 @@ import {
   validateCourierRegistrationForm,
 } from '../utils/orderLogic';
 import { AdkawyLogo } from './AdkawyLogo';
+import { AdminFinancialCenter } from './AdminFinancialCenter';
+import { AdminStoreDetailView } from './AdminStoreDetailView';
 import { ConfirmActionModal } from './ConfirmActionModal';
 import { DeviceImageInput } from './DeviceImageInput';
 import {
@@ -155,6 +168,7 @@ import { AdminSupportSplitWorkspace } from './SupportSystemViews';
 
 type AdminSidebarSection =
   | 'overview'
+  | 'finance'
   | 'requests'
   | 'stores'
   | 'couriers'
@@ -208,6 +222,11 @@ interface AdminPortalViewProps {
   adminWalletTopups?: WalletTopupRequestRecord[];
   products?: ProductRecord[];
   auditLogs?: AuditLogRecord[];
+  driverWallets?: DriverWalletRecord[];
+  financialTransactions?: FinancialTransactionRecord[];
+  treasuryReceipts?: TreasuryReceiptRecord[];
+  restaurantSettlements?: RestaurantSettlementRecord[];
+  financialExceptions?: FinancialExceptionRecord[];
   broadcastHistory?: AppNotificationRecord[];
   unreadNotificationsCount?: number;
   onOpenNotifications?: () => void;
@@ -305,6 +324,11 @@ export function AdminPortalView({
   adminWalletTopups = [],
   products = [],
   auditLogs = [],
+  driverWallets = [],
+  financialTransactions = [],
+  treasuryReceipts = [],
+  restaurantSettlements = [],
+  financialExceptions = [],
   broadcastHistory = [],
   unreadNotificationsCount = 0,
   onOpenNotifications,
@@ -494,7 +518,18 @@ export function AdminPortalView({
   const [campRewardPoints, setCampRewardPoints] = useState('50');
   const [campNeighborhood, setCampNeighborhood] = useState('');
   const [campImageUrl, setCampImageUrl] = useState('');
+  const [campIsFlashDeal, setCampIsFlashDeal] = useState(false);
+  const [campOccasionTag, setCampOccasionTag] = useState('');
+  const [campEndsAtIso, setCampEndsAtIso] = useState('');
   const [submittingCampaign, setSubmittingCampaign] = useState(false);
+
+  // Demand Forecasting state
+  const [demandForecast, setDemandForecast] =
+    useState<DemandForecastResult | null>(null);
+  const [loadingDemandForecast, setLoadingDemandForecast] = useState(false);
+  const [demandForecastError, setDemandForecastError] = useState<string | null>(
+    null
+  );
 
   // Customer Directory, Search, Loyalty Points state
   const [customerSearch, setCustomerSearch] = useState('');
@@ -510,6 +545,9 @@ export function AdminPortalView({
     Record<string, string>
   >({});
   const [expandedStoreProductsId, setExpandedStoreProductsId] = useState<
+    string | null
+  >(null);
+  const [selectedStoreForDetailId, setSelectedStoreForDetailId] = useState<
     string | null
   >(null);
 
@@ -528,12 +566,17 @@ export function AdminPortalView({
     AuditActionType | 'all'
   >('all');
 
-  // Maintenance Mode, Surge Pricing, Payment Methods & SMTP Status state
+  // Maintenance Mode, Pre-Registration Mode, Surge Pricing, Payment Methods & SMTP Status state
   const [maintMessageInput, setMaintMessageInput] = useState(
     maintenanceConfig?.maintenanceMessage ||
       'تطبيق إدكاوي في وضع الصيانة والتحديث حالياً لرفع كفاءة الخدمة في مدينة إدكو — سنعود للعمل خلال دقائق.'
   );
+  const [regMessageInput, setRegMessageInput] = useState(
+    maintenanceConfig?.registrationMessage ||
+      'تم تسجيل حسابك بنجاح! منصة إدكاوي حالياً في مرحلة التسجيل المسبق والتجهيز للافتتاح الرسمي في مدينة إدكو.'
+  );
   const [savingMaintenance, setSavingMaintenance] = useState(false);
+  const [savingRegistrationMode, setSavingRegistrationMode] = useState(false);
   const [surgeEnabledInput, setSurgeEnabledInput] = useState<boolean>(
     Boolean(maintenanceConfig?.surgeEnabled)
   );
@@ -587,6 +630,9 @@ export function AdminPortalView({
     if (maintenanceConfig?.maintenanceMessage) {
       setMaintMessageInput(maintenanceConfig.maintenanceMessage);
     }
+    if (maintenanceConfig?.registrationMessage) {
+      setRegMessageInput(maintenanceConfig.registrationMessage);
+    }
     if (maintenanceConfig) {
       setSurgeEnabledInput(Boolean(maintenanceConfig.surgeEnabled));
       setSurgeMultiplierInput(String(maintenanceConfig.surgeMultiplier ?? 1.2));
@@ -600,14 +646,21 @@ export function AdminPortalView({
   useEffect(() => {
     if (activeSection !== 'security') return;
     let cancelled = false;
-    fetch('/api/admin/smtp-status')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
+    (async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken().catch(() => null);
+        if (!token || cancelled) return;
+        const res = await fetch('/api/admin/smtp-status', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = res.ok ? await res.json() : null;
         if (!cancelled && data) {
           setSmtpStatus(data);
         }
-      })
-      .catch(() => {});
+      } catch {
+        // Non-fatal status check
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -1217,6 +1270,34 @@ export function AdminPortalView({
     }
   }
 
+  async function handleSaveRegistrationMode(nextRegistrationMode: boolean) {
+    if (!adminUid) return;
+    setErrorBanner(null);
+    setSavingRegistrationMode(true);
+    try {
+      await updateSystemMaintenanceByAdminInFirestore(
+        adminUid,
+        Boolean(maintenanceConfig?.maintenanceMode),
+        maintMessageInput,
+        {
+          registrationMode: nextRegistrationMode,
+          registrationMessage: regMessageInput,
+        }
+      );
+      flashSuccess(
+        nextRegistrationMode
+          ? 'تم تفعيل وضع التسجيل المسبق — صفحات الدخول والتسجيل مفتوحة والشاشات الداخلية مقفلة مع إظهار صفحة التسجيل المسبق.'
+          : 'تم إيقاف وضع التسجيل المسبق — يمكن للمستخدمين المسجلين الوصول للصفحة الرئيسية بشكل طبيعي.'
+      );
+    } catch (err) {
+      setErrorBanner(
+        formatAppErrorMessage(err, 'تعذر تحديث إعدادات وضع التسجيل المسبق.')
+      );
+    } finally {
+      setSavingRegistrationMode(false);
+    }
+  }
+
   async function handleSaveSystemOperationsSettings() {
     if (!adminUid) return;
     setErrorBanner(null);
@@ -1467,12 +1548,20 @@ export function AdminPortalView({
             : undefined,
         rewardPoints: Math.max(0, Math.trunc(Number(campRewardPoints) || 50)),
         targetNeighborhood: campNeighborhood || undefined,
+        isFlashDeal: campIsFlashDeal,
+        occasionTag: campOccasionTag.trim() || undefined,
+        endsAtIso: campEndsAtIso
+          ? new Date(campEndsAtIso).toISOString()
+          : undefined,
         imageUrl: campImageUrl,
         isActive: true,
       });
       setCampTitle('');
       setCampSubtitle('');
       setCampImageUrl('');
+      setCampIsFlashDeal(false);
+      setCampOccasionTag('');
+      setCampEndsAtIso('');
       flashSuccess('تم إطلاق الفعالية الدورية وظهورها للعملاء بنجاح!');
     } catch (err) {
       setErrorBanner(
@@ -1480,6 +1569,70 @@ export function AdminPortalView({
       );
     } finally {
       setSubmittingCampaign(false);
+    }
+  }
+
+  async function handleRunDemandForecast() {
+    setDemandForecastError(null);
+    setLoadingDemandForecast(true);
+    try {
+      const oneHourAgoMs = Date.now() - 60 * 60 * 1000;
+      const recentHourOrdersCount = orders.filter((o) => {
+        const ms = o.createdAtIso ? Date.parse(o.createdAtIso) : NaN;
+        return Number.isFinite(ms) && ms >= oneHourAgoMs;
+      }).length;
+      const areaCounts = new Map<string, number>();
+      for (const o of orders) {
+        const area = (o.deliveryNeighborhood || 'شارع البحر').trim();
+        if (area) areaCounts.set(area, (areaCounts.get(area) ?? 0) + 1);
+      }
+      const topNeighborhoods = Array.from(areaCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([area]) => area);
+
+      const forecast = await fetchDemandForecastFromServer({
+        activeOrdersCount: stats.activeOrdersCount,
+        recentHourOrdersCount,
+        onlineCouriersCount: stats.availableCouriersCount,
+        openStoresCount: stats.activeStoresCount,
+        topNeighborhoods:
+          topNeighborhoods.length > 0 ? topNeighborhoods : ['شارع البحر'],
+      });
+      setDemandForecast(forecast);
+    } catch (err) {
+      setDemandForecastError(
+        formatAppErrorMessage(err, 'تعذر تحليل توقعات الطلب والازدحام حالياً.')
+      );
+    } finally {
+      setLoadingDemandForecast(false);
+    }
+  }
+
+  async function handleSendForecastAlert(
+    audience: 'store' | 'courier',
+    body: string,
+    title: string
+  ) {
+    if (!onSendAdminNotification) return;
+    setErrorBanner(null);
+    setBusyKey(`forecast_alert_${audience}`);
+    try {
+      await onSendAdminNotification({
+        audience,
+        title,
+        body,
+        type: 'system',
+      });
+      flashSuccess(
+        audience === 'store'
+          ? 'تم إرسال تنبيه الازدحام إلى جميع المتاجر فوراً.'
+          : 'تم إرسال تنبيه الذروة إلى جميع المناديب فوراً.'
+      );
+    } catch (err) {
+      setErrorBanner(formatAppErrorMessage(err, 'تعذر إرسال التنبيه.'));
+    } finally {
+      setBusyKey(null);
     }
   }
 
@@ -1554,8 +1707,14 @@ export function AdminPortalView({
     if (!onUpdateStoreDeliveryFee) return;
     const rawVal = storeFeeInputById[store.id] ?? String(store.deliveryFee);
     const parsed = Math.trunc(Number(rawVal));
-    if (Number.isNaN(parsed) || parsed < 0 || parsed > 300) {
-      setErrorBanner('يرجى إدخال سعر توصيل صحيح بين 0 و 300 ج.م.');
+    if (
+      Number.isNaN(parsed) ||
+      parsed < MIN_COURIER_DELIVERY_FEE_EGP ||
+      parsed > 300
+    ) {
+      setErrorBanner(
+        `يرجى إدخال سعر توصيل صحيح لا يقل عن ${MIN_COURIER_DELIVERY_FEE_EGP} ج.م ولا يزيد عن 300 ج.م.`
+      );
       return;
     }
     setErrorBanner(null);
@@ -1760,6 +1919,11 @@ export function AdminPortalView({
       subtitle:
         'استقبال تذاكر الدعم من العملاء والمتاجر والكباتن والرد الفوري وتعيين مسؤولي الدعم',
     },
+    finance: {
+      title: 'النظام المالي والخزينة والتسويات (86% / 14%)',
+      subtitle:
+        'مؤشرات المؤسس التسعة، عهدة المناديب وإيصالات الخزينة، التسويات اليومية 12 منتصف الليل، والاستثناءات المالية',
+    },
     staff: {
       title: 'إدارة فريق العمل والصلاحيات',
       subtitle:
@@ -1769,6 +1933,7 @@ export function AdminPortalView({
 
   function selectSection(sec: AdminSidebarSection) {
     setActiveSection(sec);
+    setSelectedStoreForDetailId(null);
     setMobileSidebarOpen(false);
     setErrorBanner(null);
     setSuccessBanner(null);
@@ -1802,7 +1967,7 @@ export function AdminPortalView({
           onClick={() => selectSection('overview')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2.5 transition-colors cursor-pointer whitespace-nowrap ${
             activeSection === 'overview'
-              ? 'bg-[#FF6B00] text-white'
+              ? 'bg-[#FF7100] text-white'
               : 'text-slate-200 hover:bg-slate-800 hover:text-white'
           }`}
         >
@@ -1812,10 +1977,36 @@ export function AdminPortalView({
 
         <button
           type="button"
+          onClick={() => selectSection('finance')}
+          className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+            activeSection === 'finance'
+              ? 'bg-[#FF7100] text-white'
+              : 'text-slate-200 hover:bg-slate-800 hover:text-white'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
+            <Landmark className="w-4 h-4 shrink-0 text-[#FF7100]" aria-hidden="true" />
+            <span>النظام المالي والخزينة</span>
+          </span>
+          {financialExceptions.filter((e) => e.status === 'pending_review').length > 0 && (
+            <span
+              className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
+                activeSection === 'finance'
+                  ? 'bg-black/25 text-[#F8FAFC]'
+                  : 'bg-[#FF7100] text-white'
+              }`}
+            >
+              {financialExceptions.filter((e) => e.status === 'pending_review').length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
           onClick={() => selectSection('requests')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'requests'
-              ? 'bg-[#FF6B00] text-white'
+              ? 'bg-[#FF7100] text-white'
               : 'text-slate-200 hover:bg-slate-800 hover:text-white'
           }`}
         >
@@ -1839,7 +2030,7 @@ export function AdminPortalView({
           onClick={() => selectSection('stores')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'stores'
-              ? 'bg-[#FF6B00] text-white'
+              ? 'bg-[#FF7100] text-white'
               : 'text-slate-200 hover:bg-slate-800 hover:text-white'
           }`}
         >
@@ -1863,7 +2054,7 @@ export function AdminPortalView({
           onClick={() => selectSection('couriers')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'couriers'
-              ? 'bg-[#FF6B00] text-white'
+              ? 'bg-[#FF7100] text-white'
               : 'text-slate-200 hover:bg-slate-800 hover:text-white'
           }`}
         >
@@ -1876,7 +2067,7 @@ export function AdminPortalView({
               activeSection === 'couriers'
                 ? 'bg-black/25 text-[#F8FAFC]'
                 : stats.pendingCouriersCount > 0
-                ? 'bg-[#FF6B00] text-white'
+                ? 'bg-[#FF7100] text-white'
                 : 'bg-slate-800 text-slate-300'
             }`}
           >
@@ -1891,7 +2082,7 @@ export function AdminPortalView({
           onClick={() => selectSection('orders')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'orders'
-              ? 'bg-[#FF6B00] text-white'
+              ? 'bg-[#FF7100] text-white'
               : 'text-slate-200 hover:bg-slate-800 hover:text-white'
           }`}
         >
@@ -1916,7 +2107,7 @@ export function AdminPortalView({
           onClick={() => selectSection('invitations')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'invitations'
-              ? 'bg-[#FF6B00] text-white'
+              ? 'bg-[#FF7100] text-white'
               : 'text-slate-200 hover:bg-slate-800 hover:text-white'
           }`}
         >
@@ -1941,7 +2132,7 @@ export function AdminPortalView({
           onClick={() => selectSection('sales_agents')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'sales_agents'
-              ? 'bg-[#FF6B00] text-white'
+              ? 'bg-[#FF7100] text-white'
               : 'text-slate-200 hover:bg-slate-800 hover:text-white'
           }`}
         >
@@ -1966,8 +2157,8 @@ export function AdminPortalView({
           onClick={() => selectSection('payouts')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'payouts'
-              ? 'bg-[#FF6B00] text-white'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-white'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -1980,7 +2171,7 @@ export function AdminPortalView({
                 ? 'bg-black/25 text-[#F8FAFC]'
                 : payoutRequests.filter(p => p.status === 'pending').length > 0
                 ? 'bg-amber-950/250 text-slate-950'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {payoutRequests.filter(p => p.status === 'pending').length}
@@ -1993,8 +2184,8 @@ export function AdminPortalView({
           onClick={() => selectSection('wallet_topups')}
           className={`w-full px-3.5 py-2.5 rounded-2xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'wallet_topups'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2007,7 +2198,7 @@ export function AdminPortalView({
                 ? 'bg-black/25 text-[#F8FAFC]'
                 : adminWalletTopups.filter((t) => t.status === 'pending').length > 0
                 ? 'bg-amber-950/250 text-slate-950'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {adminWalletTopups.filter((t) => t.status === 'pending').length}
@@ -2020,8 +2211,8 @@ export function AdminPortalView({
           onClick={() => selectSection('zones_categories')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'zones_categories'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2032,7 +2223,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'zones_categories'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {edkoZones.length || 5}
@@ -2044,8 +2235,8 @@ export function AdminPortalView({
           onClick={() => selectSection('support')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'support'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2057,10 +2248,10 @@ export function AdminPortalView({
               activeSection === 'support'
                 ? 'bg-black/25 text-[#F8FAFC]'
                 : unansweredSupportCount > 0
-                ? 'bg-[#FF6B00] text-[#F8FAFC]'
+                ? 'bg-[#FF7100] text-[#F8FAFC]'
                 : openSupportCount > 0
                 ? 'bg-amber-950/250 text-slate-950'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {unansweredSupportCount > 0
@@ -2074,8 +2265,8 @@ export function AdminPortalView({
           onClick={() => selectSection('staff')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'staff'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2086,7 +2277,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'staff'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {staffMembers.length}
@@ -2098,8 +2289,8 @@ export function AdminPortalView({
           onClick={() => selectSection('notifications')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'notifications'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2110,7 +2301,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'notifications'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {broadcastHistory.length}
@@ -2122,8 +2313,8 @@ export function AdminPortalView({
           onClick={() => selectSection('ads')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'ads'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2134,7 +2325,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'ads'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {ads.length}
@@ -2146,8 +2337,8 @@ export function AdminPortalView({
           onClick={() => selectSection('campaigns')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'campaigns'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2158,7 +2349,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'campaigns'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {campaigns.length}
@@ -2170,8 +2361,8 @@ export function AdminPortalView({
           onClick={() => selectSection('coupons')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'coupons'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2182,7 +2373,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'coupons'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {coupons.length}
@@ -2194,8 +2385,8 @@ export function AdminPortalView({
           onClick={() => selectSection('customers')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'customers' || activeSection === 'loyalty'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2206,7 +2397,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'customers' || activeSection === 'loyalty'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {effectiveCustomers.length}
@@ -2218,8 +2409,8 @@ export function AdminPortalView({
           onClick={() => selectSection('security')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'security'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2234,7 +2425,7 @@ export function AdminPortalView({
                 ? 'bg-amber-950/250 text-slate-950'
                 : fraudAlerts.length > 0 || activeBlockedList.length > 0
                 ? 'bg-red-950/300 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {maintenanceConfig?.maintenanceMode
@@ -2250,8 +2441,8 @@ export function AdminPortalView({
           onClick={() => selectSection('testing')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'testing'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2262,7 +2453,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'testing'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             QA
@@ -2274,8 +2465,8 @@ export function AdminPortalView({
           onClick={() => selectSection('audit_logs')}
           className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
             activeSection === 'audit_logs'
-              ? 'bg-[#FF6B00] text-[#F8FAFC]'
-              : 'text-[#F8FAFC] hover:bg-[#0F172A]'
+              ? 'bg-[#FF7100] text-[#F8FAFC]'
+              : 'text-[#F8FAFC] hover:bg-[#10192D]'
           }`}
         >
           <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
@@ -2286,7 +2477,7 @@ export function AdminPortalView({
             className={`font-mono text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
               activeSection === 'audit_logs'
                 ? 'bg-black/25 text-[#F8FAFC]'
-                : 'bg-[#0F172A] text-[#94A3B8]'
+                : 'bg-[#10192D] text-[#94A3B8]'
             }`}
           >
             {auditLogs.length}
@@ -2308,9 +2499,9 @@ export function AdminPortalView({
         <button
           type="button"
           onClick={() => setConfirmLogoutOpen(true)}
-          className="w-full py-2.5 px-3 rounded-xl bg-[#0F172A] hover:bg-[#334155] border border-[#334155] text-xs font-bold text-[#F8FAFC] inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+          className="w-full py-2.5 px-3 rounded-xl bg-[#10192D] hover:bg-[#334155] border border-[#334155] text-xs font-bold text-[#F8FAFC] inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
         >
-          <LogOut className="w-3.5 h-3.5 text-[#FF6B00]" aria-hidden="true" />
+          <LogOut className="w-3.5 h-3.5 text-[#FF7100]" aria-hidden="true" />
           <span>تسجيل الخروج من الإدارة</span>
         </button>
       </div>
@@ -2320,7 +2511,7 @@ export function AdminPortalView({
   return (
     <div
       dir="rtl"
-      className="min-h-screen bg-[#0F172A] text-[#F8FAFC] flex flex-col lg:flex-row"
+      className="min-h-screen bg-[#10192D] text-[#F8FAFC] flex flex-col lg:flex-row"
     >
       {/* Desktop Sticky Sidebar */}
       <aside className="hidden lg:block w-[268px] shrink-0 sticky top-0 h-screen border-l border-[#334155]">
@@ -2354,7 +2545,7 @@ export function AdminPortalView({
               type="button"
               onClick={() => setMobileSidebarOpen(true)}
               aria-label="فتح القائمة الجانبية"
-              className="lg:hidden p-2 rounded-xl border border-[#334155] text-[#F8FAFC] hover:bg-[#0F172A] cursor-pointer shrink-0"
+              className="lg:hidden p-2 rounded-xl border border-[#334155] text-[#F8FAFC] hover:bg-[#10192D] cursor-pointer shrink-0"
             >
               <Menu className="w-5 h-5" aria-hidden="true" />
             </button>
@@ -2377,8 +2568,8 @@ export function AdminPortalView({
               title="تذاكر الدعم الفني المفتوحة"
               className={`relative min-h-[40px] px-3 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer whitespace-nowrap ${
                 unansweredSupportCount > 0
-                  ? 'bg-[#FF6B00] border-[#FF6B00] text-[#F8FAFC]'
-                  : 'border-[#334155] bg-[#0F172A] text-[#F8FAFC] hover:border-[#FF6B00]'
+                  ? 'bg-[#FF7100] border-[#FF7100] text-[#F8FAFC]'
+                  : 'border-[#334155] bg-[#10192D] text-[#F8FAFC] hover:border-[#FF7100]'
               }`}
             >
               <Headphones className="w-4 h-4" />
@@ -2387,8 +2578,8 @@ export function AdminPortalView({
                 <span
                   className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center tabular-nums ${
                     unansweredSupportCount > 0
-                      ? 'bg-[#0F172A] text-[#FF6B00]'
-                      : 'bg-[#FF6B00] text-[#F8FAFC]'
+                      ? 'bg-[#10192D] text-[#FF7100]'
+                      : 'bg-[#FF7100] text-[#F8FAFC]'
                   }`}
                 >
                   {unansweredSupportCount > 0
@@ -2403,11 +2594,11 @@ export function AdminPortalView({
                 type="button"
                 onClick={onOpenNotifications}
                 aria-label="فتح الإشعارات"
-                className="relative min-h-[40px] min-w-[40px] rounded-xl border border-[#334155] bg-[#0F172A] flex items-center justify-center text-[#F8FAFC] hover:border-[#FF6B00] cursor-pointer"
+                className="relative min-h-[40px] min-w-[40px] rounded-xl border border-[#334155] bg-[#10192D] flex items-center justify-center text-[#F8FAFC] hover:border-[#FF7100] cursor-pointer"
               >
                 <Bell className="w-4 h-4" />
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF6B00] text-[#F8FAFC] text-[10px] font-bold flex items-center justify-center tabular-nums">
+                  <span className="absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF7100] text-[#F8FAFC] text-[10px] font-bold flex items-center justify-center tabular-nums">
                     {unreadNotificationsCount > 99
                       ? '99+'
                       : unreadNotificationsCount}
@@ -2419,7 +2610,7 @@ export function AdminPortalView({
             <button
               type="button"
               onClick={onOpenAddStoreModal}
-              className="py-2 px-3.5 sm:px-4 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-[#F8FAFC] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              className="py-2 px-3.5 sm:px-4 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-[#F8FAFC] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" aria-hidden="true" />
               <span>إضافة متجر / صيدلية</span>
@@ -2457,7 +2648,7 @@ export function AdminPortalView({
                   <p className="text-xs font-bold text-[#94A3B8]">
                     إجمالي المبيعات المسجلة
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-[#FF6B00] font-mono tabular-nums">
+                  <p className="text-2xl sm:text-3xl font-bold text-[#FF7100] font-mono tabular-nums">
                     {stats.totalSalesEgp}{' '}
                     <span className="text-xs font-sans font-semibold text-[#94A3B8]">
                       ج.م
@@ -2515,23 +2706,23 @@ export function AdminPortalView({
                     onClick={() => selectSection('notifications')}
                     className="py-2 px-3.5 rounded-xl bg-[#1E293B] hover:bg-slate-800 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Bell className="w-3.5 h-3.5 text-[#FF6B00]" />
+                    <Bell className="w-3.5 h-3.5 text-[#FF7100]" />
                     <span>إرسال إشعار داخلي</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => selectSection('ads')}
-                    className="py-2 px-3.5 rounded-xl border border-[#334155] hover:border-[#FF6B00] text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-1.5 cursor-pointer"
+                    className="py-2 px-3.5 rounded-xl border border-[#334155] hover:border-[#FF7100] text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Megaphone className="w-3.5 h-3.5 text-[#FF6B00]" />
+                    <Megaphone className="w-3.5 h-3.5 text-[#FF7100]" />
                     <span>رفع بنر إعلاني</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => selectSection('campaigns')}
-                    className="py-2 px-3.5 rounded-xl border border-[#334155] hover:border-[#FF6B00] text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-1.5 cursor-pointer"
+                    className="py-2 px-3.5 rounded-xl border border-[#334155] hover:border-[#FF7100] text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Flame className="w-3.5 h-3.5 text-[#FF6B00]" />
+                    <Flame className="w-3.5 h-3.5 text-[#FF7100]" />
                     <span>إطلاق فعالية دورية</span>
                   </button>
                 </div>
@@ -2553,12 +2744,149 @@ export function AdminPortalView({
                 )}
               </div>
 
+              {/* Edku Demand & Congestion Forecast Panel */}
+              <div className="edkawi-soft-card p-5 space-y-4 border border-[#46D5D4]/30">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#46D5D4]/15 border border-[#46D5D4]/30 text-[#46D5D4] flex items-center justify-center shrink-0">
+                      <Zap className="w-5 h-5" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-[#F8FAFC]">
+                        التنبؤ بالطلب والازدحام في إدكو
+                      </h2>
+                      <p className="text-xs text-[#94A3B8]">
+                        تحليل فوري لحجم الطلبات النشطة وتوزيع المناديب وتنبيه الشركاء قبل ساعات الذروة
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={loadingDemandForecast}
+                    onClick={() => void handleRunDemandForecast()}
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-[#46D5D4] hover:bg-[#32C3C2] disabled:opacity-60 text-[#0F172A] text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
+                  >
+                    <RefreshCw
+                      className={`w-3.5 h-3.5 ${
+                        loadingDemandForecast ? 'animate-spin' : ''
+                      }`}
+                    />
+                    <span>
+                      {loadingDemandForecast
+                        ? 'جارٍ التحليل...'
+                        : 'تحليل التوقعات الآن'}
+                    </span>
+                  </button>
+                </div>
+
+                {demandForecastError && (
+                  <p className="text-xs font-bold text-rose-300 bg-rose-950/50 border border-rose-800/60 rounded-xl px-3.5 py-2">
+                    {demandForecastError}
+                  </p>
+                )}
+
+                {demandForecast && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3.5 rounded-xl bg-[#10192D] border border-[#334155]">
+                        <p className="text-[11px] text-[#94A3B8]">مستوى الضغط المتوقع</p>
+                        <p className="text-base font-bold text-[#46D5D4] mt-1">
+                          {demandForecast.demandLevel}
+                        </p>
+                      </div>
+                      <div className="p-3.5 rounded-xl bg-[#10192D] border border-[#334155]">
+                        <p className="text-[11px] text-[#94A3B8]">نافذة الذروة</p>
+                        <p className="text-sm font-bold text-[#F8FAFC] mt-1">
+                          {demandForecast.peakWindowLabel}
+                        </p>
+                      </div>
+                      <div className="p-3.5 rounded-xl bg-[#10192D] border border-[#334155]">
+                        <p className="text-[11px] text-[#94A3B8]">مناديب إضافيون مقترحون</p>
+                        <p className="text-base font-bold text-[#FF7100] font-mono tabular-nums mt-1">
+                          +{demandForecast.recommendedExtraCouriers}
+                        </p>
+                      </div>
+                    </div>
+
+                    {demandForecast.hotNeighborhoods.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-[#94A3B8]">
+                          الأحياء الأكثر سخونة:
+                        </span>
+                        {demandForecast.hotNeighborhoods.map((area) => (
+                          <span
+                            key={area}
+                            className="px-2.5 py-1 rounded-lg bg-[#10192D] border border-[#334155] text-xs font-bold text-[#F8FAFC]"
+                          >
+                            {area}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className="p-3.5 rounded-xl bg-[#10192D] border border-[#334155] space-y-2.5">
+                        <p className="text-xs font-bold text-[#F8FAFC]">
+                          تنبيه مقترح للمتاجر والمطاعم:
+                        </p>
+                        <p className="text-xs text-[#94A3B8] leading-relaxed">
+                          {demandForecast.storeAlertMessage}
+                        </p>
+                        {onSendAdminNotification && (
+                          <button
+                            type="button"
+                            disabled={busyKey === 'forecast_alert_store'}
+                            onClick={() =>
+                              void handleSendForecastAlert(
+                                'store',
+                                demandForecast.storeAlertMessage,
+                                `تنبيه ذروة (${demandForecast.peakWindowLabel})`
+                              )
+                            }
+                            className="px-3.5 py-2 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>إرسال تنبيه للمتاجر الآن</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-[#10192D] border border-[#334155] space-y-2.5">
+                        <p className="text-xs font-bold text-[#F8FAFC]">
+                          تنبيه مقترح لكباتن التوصيل:
+                        </p>
+                        <p className="text-xs text-[#94A3B8] leading-relaxed">
+                          {demandForecast.courierAlertMessage}
+                        </p>
+                        {onSendAdminNotification && (
+                          <button
+                            type="button"
+                            disabled={busyKey === 'forecast_alert_courier'}
+                            onClick={() =>
+                              void handleSendForecastAlert(
+                                'courier',
+                                demandForecast.courierAlertMessage,
+                                `توجيه ذروة للمناديب (${demandForecast.peakWindowLabel})`
+                              )
+                            }
+                            className="px-3.5 py-2 rounded-xl bg-[#46D5D4] hover:bg-[#32C3C2] text-[#0F172A] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>إرسال تنبيه للمناديب الآن</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* 7-Day Orders & Revenue Recharts Dashboard Widget */}
               <div className="edkawi-soft-card p-5 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-[#FF6B00]" />
+                      <TrendingUp className="w-5 h-5 text-[#FF7100]" />
                       <span>مؤشر الطلبات والإيرادات خلال آخر 7 أيام</span>
                     </h2>
                     <p className="text-xs text-[#94A3B8]">
@@ -2566,8 +2894,8 @@ export function AdminPortalView({
                     </p>
                   </div>
                   <div className="flex items-center gap-3 text-xs font-bold">
-                    <span className="inline-flex items-center gap-1 text-[#FF6B00]">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF6B00]" />
+                    <span className="inline-flex items-center gap-1 text-[#FF7100]">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF7100]" />
                       <span>الإيرادات (ج.م)</span>
                     </span>
                     <span className="inline-flex items-center gap-1 text-[#3B82F6]">
@@ -2582,13 +2910,13 @@ export function AdminPortalView({
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="h-64 w-full bg-[#0F172A] rounded-2xl p-3 border border-[#334155]">
+                  <div className="h-64 w-full bg-[#10192D] rounded-2xl p-3 border border-[#334155]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={last7DaysChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#FF6B00" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#FF6B00" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#FF7100" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#FF7100" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.35} />
@@ -2607,7 +2935,7 @@ export function AdminPortalView({
                           type="monotone"
                           dataKey="revenueEgp"
                           name="الإيرادات (ج.م)"
-                          stroke="#FF6B00"
+                          stroke="#FF7100"
                           strokeWidth={2.5}
                           fillOpacity={1}
                           fill="url(#colorRevenue)"
@@ -2616,7 +2944,7 @@ export function AdminPortalView({
                     </ResponsiveContainer>
                   </div>
 
-                  <div className="h-64 w-full bg-[#0F172A] rounded-2xl p-3 border border-[#334155]">
+                  <div className="h-64 w-full bg-[#10192D] rounded-2xl p-3 border border-[#334155]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={last7DaysChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.35} />
@@ -2645,7 +2973,7 @@ export function AdminPortalView({
 
               {stores.length === 0 && (
                 <div className="edkawi-soft-card p-8 text-center space-y-4">
-                  <StoreIcon className="w-10 h-10 text-[#FF6B00] mx-auto" />
+                  <StoreIcon className="w-10 h-10 text-[#FF7100] mx-auto" />
                   <h2 className="text-base sm:text-lg font-bold text-[#F8FAFC]">
                     ابدأ بإضافة المتاجر والصيدليات الحقيقية في مدينة إدكو
                   </h2>
@@ -2655,7 +2983,7 @@ export function AdminPortalView({
                   <button
                     type="button"
                     onClick={onOpenAddStoreModal}
-                    className="py-2.5 px-6 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-bold cursor-pointer"
+                    className="py-2.5 px-6 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs sm:text-sm font-bold cursor-pointer"
                   >
                     + إضافة متجر أو صيدلية الآن
                   </button>
@@ -2675,7 +3003,7 @@ export function AdminPortalView({
                     <button
                       type="button"
                       onClick={() => selectSection('couriers')}
-                      className="text-xs font-bold text-[#FF6B00] hover:underline cursor-pointer"
+                      className="text-xs font-bold text-[#FF7100] hover:underline cursor-pointer"
                     >
                       مراجعة مستندات المناديب بالتفصيل
                     </button>
@@ -2722,7 +3050,7 @@ export function AdminPortalView({
                             <button
                               type="button"
                               onClick={() => selectSection('couriers')}
-                              className="py-2 px-3.5 rounded-xl bg-[#0F172A] border border-[#334155] hover:border-[#FF6B00] text-[#F8FAFC] text-xs font-bold cursor-pointer whitespace-nowrap"
+                              className="py-2 px-3.5 rounded-xl bg-[#10192D] border border-[#334155] hover:border-[#FF7100] text-[#F8FAFC] text-xs font-bold cursor-pointer whitespace-nowrap"
                             >
                               معاينة المستندات
                             </button>
@@ -2753,7 +3081,7 @@ export function AdminPortalView({
                   <button
                     type="button"
                     onClick={() => selectSection('orders')}
-                    className="text-xs font-bold text-[#FF6B00] hover:underline cursor-pointer"
+                    className="text-xs font-bold text-[#FF7100] hover:underline cursor-pointer"
                   >
                     عرض كل الطلبات
                   </button>
@@ -2779,7 +3107,7 @@ export function AdminPortalView({
                         {orders.slice(0, 6).map((o) => (
                           <tr
                             key={o.id}
-                            className="hover:bg-[#0F172A]/60"
+                            className="hover:bg-[#10192D]/60"
                           >
                             <td
                               dir="ltr"
@@ -2798,7 +3126,7 @@ export function AdminPortalView({
                             <td className="py-3 px-4 text-[#94A3B8]">
                               {o.customerName} ({o.deliveryNeighborhood})
                             </td>
-                            <td className="py-3 px-4 font-semibold text-[#FF6B00]">
+                            <td className="py-3 px-4 font-semibold text-[#FF7100]">
                               {getOrderStatusLabel(o.status)}
                             </td>
                             <td className="py-3 px-5 text-left font-mono font-bold text-[#F8FAFC] tabular-nums">
@@ -2875,7 +3203,7 @@ export function AdminPortalView({
                           </div>
                           <p className="text-xs text-[#94A3B8]">
                             المالك: <span className="font-semibold text-[#F8FAFC]">{req.ownerName}</span> · الهاتف:{' '}
-                            <span dir="ltr" className="font-mono font-semibold text-[#FF6B00]">{req.phone}</span>
+                            <span dir="ltr" className="font-mono font-semibold text-[#FF7100]">{req.phone}</span>
                           </p>
                           <p className="text-xs text-[#94A3B8]">
                             التصنيف: {req.category} {req.subCategory ? `(${req.subCategory})` : ''} · الحي: {req.neighborhood}
@@ -2883,12 +3211,12 @@ export function AdminPortalView({
                           {(req.commercialRegisterNumber || req.taxCertificateNumber) && (
                             <div className="flex flex-wrap items-center gap-2 pt-1">
                               {req.commercialRegisterNumber && (
-                                <span className="text-[11px] font-mono bg-[#0F172A] border border-[#334155] text-[#F8FAFC] px-2.5 py-1 rounded-xl">
+                                <span className="text-[11px] font-mono bg-[#10192D] border border-[#334155] text-[#F8FAFC] px-2.5 py-1 rounded-xl">
                                   السجل التجاري: {req.commercialRegisterNumber}
                                 </span>
                               )}
                               {req.taxCertificateNumber && (
-                                <span className="text-[11px] font-mono bg-[#0F172A] border border-[#334155] text-[#FF6B00] px-2.5 py-1 rounded-xl">
+                                <span className="text-[11px] font-mono bg-[#10192D] border border-[#334155] text-[#FF7100] px-2.5 py-1 rounded-xl">
                                   الرقم الضريبي: {req.taxCertificateNumber}
                                 </span>
                               )}
@@ -2910,7 +3238,7 @@ export function AdminPortalView({
                                 url: req.commercialRegisterImage!,
                               })
                             }
-                            className="shrink-0 block w-24 h-20 rounded-xl overflow-hidden border border-[#334155] hover:border-[#FF6B00] cursor-pointer"
+                            className="shrink-0 block w-24 h-20 rounded-xl overflow-hidden border border-[#334155] hover:border-[#FF7100] cursor-pointer"
                             title="تكبير صورة السجل التجاري"
                           >
                             <img
@@ -3016,7 +3344,29 @@ export function AdminPortalView({
           {/* ================================================================
            * 2. STORES & PHARMACIES MANAGEMENT (إدارة المتاجر والصيدليات)
            * ============================================================== */}
-          {activeSection === 'stores' && (
+          {activeSection === 'stores' &&
+            (() => {
+              const detailStore = selectedStoreForDetailId
+                ? stores.find((s) => s.id === selectedStoreForDetailId) ?? null
+                : null;
+              if (detailStore) {
+                return (
+                  <AdminStoreDetailView
+                    store={detailStore}
+                    orders={orders}
+                    products={products}
+                    transactions={financialTransactions}
+                    settlements={restaurantSettlements}
+                    exceptions={financialExceptions}
+                    auditLogs={auditLogs}
+                    adminUid={adminUid}
+                    onBack={() => setSelectedStoreForDetailId(null)}
+                    onDeleteProductByAdmin={onDeleteProductByAdmin}
+                    onNotify={onNotify}
+                  />
+                );
+              }
+              return (
             <section className="space-y-5">
               <div className="edkawi-soft-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="relative flex-1">
@@ -3036,7 +3386,7 @@ export function AdminPortalView({
                 <button
                   type="button"
                   onClick={onOpenAddStoreModal}
-                  className="py-2.5 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                  className="py-2.5 px-5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
                 >
                   <Plus className="w-4 h-4" aria-hidden="true" />
                   <span>إضافة متجر / صيدلية وتوليد حساب</span>
@@ -3079,7 +3429,7 @@ export function AdminPortalView({
                           return (
                             <tr
                               key={store.id}
-                              className="hover:bg-[#0F172A]/60 transition-colors"
+                              className="hover:bg-[#10192D]/60 transition-colors"
                             >
                               <td className="py-3.5 px-5 whitespace-nowrap">
                                 <div className="flex items-center gap-3">
@@ -3131,7 +3481,7 @@ export function AdminPortalView({
                                           type="button"
                                           disabled={busyKey === `reset_${cred.loginEmail}`}
                                           onClick={() => void handleAdminSendPasswordReset(cred.loginEmail)}
-                                          className="py-1 px-2 rounded-md bg-orange-950/40 border border-orange-800 text-[#FF6B00] text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                                          className="py-1 px-2 rounded-md bg-orange-950/40 border border-orange-800 text-[#FF7100] text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
                                           title="إرسال رابط تعيين كلمة المرور للبريد"
                                         >
                                           <KeyRound className="w-3 h-3" />
@@ -3148,7 +3498,7 @@ export function AdminPortalView({
                                           });
                                           setAdminNewEmailInput(cred?.loginEmail || '');
                                         }}
-                                        className="py-1 px-2 rounded-md border border-[#334155] text-[#94A3B8] hover:bg-[#0F172A] text-[11px] font-bold cursor-pointer"
+                                        className="py-1 px-2 rounded-md border border-[#334155] text-[#94A3B8] hover:bg-[#10192D] text-[11px] font-bold cursor-pointer"
                                       >
                                         تحديث البريد
                                       </button>
@@ -3168,8 +3518,17 @@ export function AdminPortalView({
                                 </span>
                               </td>
 
-                              <td className="py-3.5 px-5 text-left whitespace-nowrap">
+                                <td className="py-3.5 px-5 text-left whitespace-nowrap">
                                 <div className="inline-flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedStoreForDetailId(store.id)
+                                    }
+                                    className="py-1.5 px-3 rounded-lg bg-[#FF7100] hover:bg-[#E66600] text-white text-xs font-bold cursor-pointer"
+                                  >
+                                    ملف المطعم الكامل
+                                  </button>
                                   <button
                                     type="button"
                                     disabled={busyKey === `store_${store.id}`}
@@ -3178,7 +3537,7 @@ export function AdminPortalView({
                                     }
                                     className={`py-1.5 px-3 rounded-lg text-xs font-bold cursor-pointer ${
                                       store.isActive
-                                        ? 'border border-[#334155] text-[#F8FAFC] hover:bg-[#0F172A]'
+                                        ? 'border border-[#334155] text-[#F8FAFC] hover:bg-[#10192D]'
                                         : 'bg-emerald-600 text-white hover:bg-emerald-700'
                                     }`}
                                   >
@@ -3191,7 +3550,7 @@ export function AdminPortalView({
                                     <div className="inline-flex items-center gap-1">
                                       <input
                                         type="number"
-                                        min={0}
+                                        min={MIN_COURIER_DELIVERY_FEE_EGP}
                                         max={300}
                                         aria-label={`سعر توصيل ${store.name}`}
                                         value={
@@ -3229,7 +3588,7 @@ export function AdminPortalView({
                                           prev === store.id ? null : store.id
                                         )
                                       }
-                                      className="py-1.5 px-2.5 rounded-lg border border-[#334155] hover:border-[#FF6B00] text-xs font-bold text-[#F8FAFC] cursor-pointer"
+                                      className="py-1.5 px-2.5 rounded-lg border border-[#334155] hover:border-[#FF7100] text-xs font-bold text-[#F8FAFC] cursor-pointer"
                                     >
                                       الأصناف (
                                       <span className="font-mono tabular-nums">
@@ -3352,7 +3711,8 @@ export function AdminPortalView({
                 </div>
               )}
             </section>
-          )}
+              );
+            })()}
 
           {/* ================================================================
            * 3. COURIERS MANAGEMENT (إدارة المندوبين + خريطة الأسطول)
@@ -3373,7 +3733,7 @@ export function AdminPortalView({
                 <button
                   type="button"
                   onClick={() => setIsAddCourierOpen(true)}
-                  className="py-2.5 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+                  className="py-2.5 px-5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" aria-hidden="true" />
                   <span>إضافة مندوب معتمد وتحديد موقعه</span>
@@ -3497,7 +3857,7 @@ export function AdminPortalView({
                             {kycItems.map((docItem) => (
                               <div
                                 key={docItem.label}
-                                className="rounded-xl bg-[#0F172A] border border-[#334155] p-2 space-y-1.5"
+                                className="rounded-xl bg-[#10192D] border border-[#334155] p-2 space-y-1.5"
                               >
                                 <p className="text-[11px] font-bold text-[#94A3B8] truncate">
                                   {docItem.label}
@@ -3511,7 +3871,7 @@ export function AdminPortalView({
                                         url: docItem.url!,
                                       })
                                     }
-                                    className="w-full h-24 rounded-lg overflow-hidden border border-[#334155] hover:border-[#FF6B00] cursor-pointer block"
+                                    className="w-full h-24 rounded-lg overflow-hidden border border-[#334155] hover:border-[#FF7100] cursor-pointer block"
                                     title="اضغط للتكبير"
                                   >
                                     <img
@@ -3530,7 +3890,7 @@ export function AdminPortalView({
                           </div>
 
                           {isRejectOpen && (
-                            <div className="p-4 rounded-2xl bg-[#0F172A] border border-rose-500/40 space-y-3">
+                            <div className="p-4 rounded-2xl bg-[#10192D] border border-rose-500/40 space-y-3">
                               <label className="block text-xs font-bold text-rose-300">
                                 سبب رفض المستندات (سيظهر للمندوب لإعادة الرفع):
                               </label>
@@ -3632,7 +3992,7 @@ export function AdminPortalView({
                         {approvedCouriers.map((c) => (
                           <tr
                             key={c.id}
-                            className="hover:bg-[#0F172A]/60"
+                            className="hover:bg-[#10192D]/60"
                           >
                             <td className="py-3.5 px-5 font-bold text-[#F8FAFC]">
                               {c.name}
@@ -3683,7 +4043,7 @@ export function AdminPortalView({
                                       type="button"
                                       disabled={busyKey === `reset_${c.email}`}
                                       onClick={() => void handleAdminSendPasswordReset(c.email!)}
-                                      className="py-1 px-2 rounded-md bg-orange-950/40 border border-orange-800 text-[#FF6B00] text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                                      className="py-1 px-2 rounded-md bg-orange-950/40 border border-orange-800 text-[#FF7100] text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
                                       title="إرسال رابط تعيين كلمة المرور"
                                     >
                                       <KeyRound className="w-3 h-3" />
@@ -3763,8 +4123,8 @@ export function AdminPortalView({
                       onClick={() => setOrderStatusFilter(item.key)}
                       className={`py-2 px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                         active
-                          ? 'bg-[#1E293B] text-white bg-[#FF6B00]'
-                          : 'text-[#94A3B8] hover:bg-[#0F172A]'
+                          ? 'bg-[#1E293B] text-white bg-[#FF7100]'
+                          : 'text-[#94A3B8] hover:bg-[#10192D]'
                       }`}
                     >
                       {item.label}
@@ -3813,7 +4173,7 @@ export function AdminPortalView({
                                 #{order.id.slice(0, 8)}
                               </span>
                               <span>·</span>
-                              <span className="font-bold text-[#FF6B00]">
+                              <span className="font-bold text-[#FF7100]">
                                 {getOrderStatusLabel(order.status)}
                               </span>
                               {isPharmacy && (
@@ -3836,7 +4196,7 @@ export function AdminPortalView({
                             </h3>
 
                             <p className="text-xs text-[#94A3B8] flex items-center gap-1.5 flex-wrap">
-                              <MapPin className="w-3.5 h-3.5 text-[#FF6B00] shrink-0" />
+                              <MapPin className="w-3.5 h-3.5 text-[#FF7100] shrink-0" />
                               <span>
                                 {order.deliveryNeighborhood} —{' '}
                                 {order.deliveryAddress}
@@ -3935,7 +4295,7 @@ export function AdminPortalView({
               <div className="edkawi-soft-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                    <Mail className="w-5 h-5 text-[#FF6B00]" />
+                    <Mail className="w-5 h-5 text-[#FF7100]" />
                     <span>نظام إدارة الدعوات (Invitations Management)</span>
                   </h2>
                   <p className="text-xs text-[#94A3B8] mt-1">
@@ -3945,7 +4305,7 @@ export function AdminPortalView({
                 <button
                   type="button"
                   onClick={() => setIsCreateInviteModalOpen(true)}
-                  className="py-2.5 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-bold inline-flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                  className="py-2.5 px-5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs sm:text-sm font-bold inline-flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                   <span>إنشاء دعوة جديدة</span>
@@ -4024,7 +4384,7 @@ export function AdminPortalView({
                             );
 
                             return (
-                              <tr key={inv.id} className="hover:bg-[#0F172A]/60">
+                              <tr key={inv.id} className="hover:bg-[#10192D]/60">
                                 <td dir="ltr" className="py-3.5 px-4 font-mono font-bold text-right text-[#F8FAFC]">
                                   {inv.email}
                                 </td>
@@ -4044,7 +4404,7 @@ export function AdminPortalView({
                                         ? 'bg-emerald-950/60 text-emerald-300'
                                         : currentStatus === 'expired'
                                         ? 'bg-red-950/60 text-red-300'
-                                        : 'bg-orange-950/60 text-[#FF6B00]'
+                                        : 'bg-orange-950/60 text-[#FF7100]'
                                     }`}
                                   >
                                     {currentStatus === 'accepted'
@@ -4063,7 +4423,7 @@ export function AdminPortalView({
                                     <button
                                       type="button"
                                       onClick={() => void handleCopyText(shareUrl, `inv_${inv.id}`)}
-                                      className="py-1 px-2.5 rounded-lg border border-[#334155] text-xs font-bold hover:border-[#FF6B00] cursor-pointer inline-flex items-center gap-1"
+                                      className="py-1 px-2.5 rounded-lg border border-[#334155] text-xs font-bold hover:border-[#FF7100] cursor-pointer inline-flex items-center gap-1"
                                     >
                                       {copiedKey === `inv_${inv.id}` ? (
                                         <>
@@ -4082,7 +4442,7 @@ export function AdminPortalView({
                                         type="button"
                                         disabled={busyKey === `resend_${inv.id}`}
                                         onClick={() => void handleResendInvitation(inv)}
-                                        className="py-1 px-2.5 rounded-lg bg-orange-950/40 border border-orange-800 text-[#FF6B00] text-xs font-bold hover:bg-orange-100 cursor-pointer inline-flex items-center gap-1"
+                                        className="py-1 px-2.5 rounded-lg bg-orange-950/40 border border-orange-800 text-[#FF7100] text-xs font-bold hover:bg-orange-100 cursor-pointer inline-flex items-center gap-1"
                                       >
                                         <RefreshCw className="w-3 h-3" />
                                         <span>{busyKey === `resend_${inv.id}` ? '...' : 'إعادة إرسال'}</span>
@@ -4110,7 +4470,7 @@ export function AdminPortalView({
               <div className="edkawi-soft-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-[#FF6B00]" />
+                    <TrendingUp className="w-5 h-5 text-[#FF7100]" />
                     <span>إدارة مسؤولي المبيعات والعمولات (Sales Agents)</span>
                   </h2>
                   <p className="text-xs text-[#94A3B8] mt-1">
@@ -4139,13 +4499,13 @@ export function AdminPortalView({
                       </thead>
                       <tbody className="divide-y divide-[#334155]">
                         {salesAgents.map((agent) => (
-                          <tr key={agent.id} className="hover:bg-[#0F172A]/60">
+                          <tr key={agent.id} className="hover:bg-[#10192D]/60">
                             <td className="py-3.5 px-4 font-bold text-[#F8FAFC]">
                               <div>{agent.name}</div>
                               <div dir="ltr" className="text-[11px] font-mono text-slate-400 font-normal">{agent.phone || agent.email}</div>
                             </td>
                             <td className="py-3.5 px-3">
-                              <span className="px-2 py-0.5 rounded-md bg-orange-950/60 text-[#FF6B00] font-mono font-bold text-xs">
+                              <span className="px-2 py-0.5 rounded-md bg-orange-950/60 text-[#FF7100] font-mono font-bold text-xs">
                                 {agent.referralCode}
                               </span>
                             </td>
@@ -4181,7 +4541,7 @@ export function AdminPortalView({
                                 type="button"
                                 disabled={busyKey === `comm_${agent.id}`}
                                 onClick={() => void handleSaveAgentCommission(agent)}
-                                className="py-1 px-3 rounded-lg bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs font-bold cursor-pointer"
+                                className="py-1 px-3 rounded-lg bg-[#FF7100] hover:bg-[#E66600] text-white text-xs font-bold cursor-pointer"
                               >
                                 {busyKey === `comm_${agent.id}` ? 'جارٍ الحفظ...' : 'حفظ النسبة'}
                               </button>
@@ -4203,7 +4563,7 @@ export function AdminPortalView({
             <section className="space-y-5">
               <div className="edkawi-soft-card p-5">
                 <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-[#FF6B00]" />
+                  <DollarSign className="w-5 h-5 text-[#FF7100]" />
                   <span>طلبات سحب الأرباح (Payout Requests)</span>
                 </h2>
                 <p className="text-xs text-[#94A3B8] mt-1">
@@ -4230,12 +4590,12 @@ export function AdminPortalView({
                       </thead>
                       <tbody className="divide-y divide-[#334155]">
                         {payoutRequests.map((req) => (
-                          <tr key={req.id} className="hover:bg-[#0F172A]/60">
+                          <tr key={req.id} className="hover:bg-[#10192D]/60">
                             <td className="py-3.5 px-4 font-bold text-[#F8FAFC]">
                               <div>{req.agentName}</div>
                               <div className="text-[11px] text-slate-400 font-normal tabular-nums">{new Date(req.createdAtIso || req.createdAt || Date.now()).toLocaleDateString('ar-EG')}</div>
                             </td>
-                            <td className="py-3.5 px-3 font-mono font-bold text-[#FF6B00] text-base tabular-nums">
+                            <td className="py-3.5 px-3 font-mono font-bold text-[#FF7100] text-base tabular-nums">
                               {req.amount} ج.م
                             </td>
                             <td className="py-3.5 px-4">
@@ -4313,7 +4673,7 @@ export function AdminPortalView({
               <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                    <Wallet className="w-5 h-5 text-[#FF6B00]" />
+                    <Wallet className="w-5 h-5 text-[#FF7100]" />
                     <span>طلبات شحن محافظ العملاء (فودافون كاش / إنستاباي)</span>
                   </h2>
                   <p className="text-xs text-[#94A3B8] mt-1">
@@ -4359,7 +4719,7 @@ export function AdminPortalView({
                                 {req.customerCode && (
                                   <span
                                     dir="ltr"
-                                    className="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-[#0F172A] border border-[#334155] text-[#FF6B00]"
+                                    className="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-[#10192D] border border-[#334155] text-[#FF7100]"
                                   >
                                     {req.customerCode}
                                   </span>
@@ -4429,7 +4789,7 @@ export function AdminPortalView({
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 shrink-0">
-                              <div className="px-4 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] font-mono font-bold text-lg text-[#FF6B00] tabular-nums">
+                              <div className="px-4 py-2 rounded-2xl bg-[#10192D] border border-[#334155] font-mono font-bold text-lg text-[#FF7100] tabular-nums">
                                 +{req.amount} ج.م
                               </div>
 
@@ -4437,9 +4797,9 @@ export function AdminPortalView({
                                 <button
                                   type="button"
                                   onClick={() => setZoomedTopupReceiptUrl(req.receiptImageUrl || null)}
-                                  className="px-3 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] hover:border-[#FF6B00] text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-2 cursor-pointer"
+                                  className="px-3 py-2 rounded-2xl bg-[#10192D] border border-[#334155] hover:border-[#FF7100] text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-2 cursor-pointer"
                                 >
-                                  <Eye className="w-4 h-4 text-[#FF6B00]" />
+                                  <Eye className="w-4 h-4 text-[#FF7100]" />
                                   <span>عرض الإيصال</span>
                                 </button>
                               )}
@@ -4459,7 +4819,7 @@ export function AdminPortalView({
                                   }))
                                 }
                                 placeholder="ملاحظة للعميل (إجباري توضيح السبب عند الرفض)..."
-                                className="flex-1 px-3.5 py-2.5 rounded-2xl bg-[#0F172A] border border-[#334155] text-sm text-[#F8FAFC] placeholder:text-[#94A3B8]"
+                                className="flex-1 px-3.5 py-2.5 rounded-2xl bg-[#10192D] border border-[#334155] text-sm text-[#F8FAFC] placeholder:text-[#94A3B8]"
                               />
                               <div className="flex items-center gap-2 shrink-0">
                                 <button
@@ -4501,7 +4861,7 @@ export function AdminPortalView({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                      <MapIcon className="w-5 h-5 text-[#FF6B00]" />
+                      <MapIcon className="w-5 h-5 text-[#FF7100]" />
                       <span>إدارة مناطق التوصيل المعتمدة (edko_zones)</span>
                     </h2>
                     <p className="text-xs text-[#94A3B8] mt-1">
@@ -4522,10 +4882,10 @@ export function AdminPortalView({
                     </thead>
                     <tbody className="divide-y divide-[#334155]">
                       {edkoZones.map((zone) => (
-                        <tr key={zone.id} className="hover:bg-[#0F172A]/60">
+                        <tr key={zone.id} className="hover:bg-[#10192D]/60">
                           <td className="py-3.5 px-4 font-bold text-[#F8FAFC]">
                             <div>{zone.nameAr || zone.name}</div>
-                            <div className="text-[11px] text-[#FF6B00] font-normal">{zone.distanceRangeLabel || zone.distanceRangeKm || zone.kmRange || ''}</div>
+                            <div className="text-[11px] text-[#FF7100] font-normal">{zone.distanceRangeLabel || zone.distanceRangeKm || zone.kmRange || ''}</div>
                           </td>
                           <td className="py-3.5 px-4 text-xs text-[#94A3B8] max-w-md">
                             {zone.streetsAndNeighborhoods.join('، ') || zone.coverageTextAr || zone.areaTitle}
@@ -4533,12 +4893,12 @@ export function AdminPortalView({
                           <td className="py-3.5 px-3">
                             <input
                               type="number"
-                              min={10}
+                              min={MIN_COURIER_DELIVERY_FEE_EGP}
                               max={150}
                               dir="ltr"
                               value={editingZonePrices[zone.id] ?? zone.deliveryFeeEgp ?? zone.deliveryFee}
                               onChange={(e) => {
-                                const val = Math.max(5, Number(e.target.value));
+                                const val = Math.max(MIN_COURIER_DELIVERY_FEE_EGP, Number(e.target.value));
                                 setEditingZonePrices((prev) => ({ ...prev, [zone.id]: val }));
                               }}
                               className="w-20 px-3 py-1.5 rounded-lg border border-[#334155] text-sm font-mono font-bold text-center"
@@ -4549,7 +4909,7 @@ export function AdminPortalView({
                               type="button"
                               disabled={busyKey === `zone_${zone.id}`}
                               onClick={() => void handleSaveZonePrice(zone)}
-                              className="py-1.5 px-4 rounded-lg bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs font-bold cursor-pointer"
+                              className="py-1.5 px-4 rounded-lg bg-[#FF7100] hover:bg-[#E66600] text-white text-xs font-bold cursor-pointer"
                             >
                               {busyKey === `zone_${zone.id}` ? 'جارٍ الحفظ...' : 'حفظ السعر'}
                             </button>
@@ -4577,7 +4937,7 @@ export function AdminPortalView({
                     <div key={cat.id} className="p-4 rounded-xl border border-[#334155] space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm text-[#F8FAFC]">{cat.titleAr || cat.name}</span>
-                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#0F172A] text-[#94A3B8]">
+                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#10192D] text-[#94A3B8]">
                           {cat.isActive ? 'مفعل' : 'معطل'}
                         </span>
                       </div>
@@ -4587,12 +4947,12 @@ export function AdminPortalView({
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
-                            min={0}
+                            min={MIN_COURIER_DELIVERY_FEE_EGP}
                             max={100}
                             dir="ltr"
                             value={editingCategoryFee[cat.id] ?? cat.defaultDeliveryFeeEgp ?? 15}
                             onChange={(e) => {
-                              const val = Math.max(0, Number(e.target.value));
+                              const val = Math.max(MIN_COURIER_DELIVERY_FEE_EGP, Number(e.target.value));
                               setEditingCategoryFee((prev) => ({ ...prev, [cat.id]: val }));
                             }}
                             className="w-16 px-2 py-1 rounded border border-[#334155] text-xs font-mono text-center"
@@ -4621,7 +4981,7 @@ export function AdminPortalView({
             <section className="space-y-6">
               <div className="edkawi-soft-card p-6 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <Bell className="w-5 h-5 text-[#FF6B00]" />
+                  <Bell className="w-5 h-5 text-[#FF7100]" />
                   <div>
                     <h2 className="text-base font-bold text-[#F8FAFC]">
                       إرسال إشعار داخلي مباشر من الإدارة
@@ -4730,7 +5090,7 @@ export function AdminPortalView({
                     <button
                       type="submit"
                       disabled={sendingNotif}
-                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
+                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
                     >
                       <Send className="w-4 h-4" />
                       <span>
@@ -4759,7 +5119,7 @@ export function AdminPortalView({
                     {broadcastHistory.map((item) => (
                       <div key={item.id} className="p-5 space-y-1.5">
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <span className="font-bold text-[#FF6B00]">
+                          <span className="font-bold text-[#FF7100]">
                             الفئة: {AUDIENCE_LABELS[item.audience ?? 'all']}
                           </span>
                           <span className="text-slate-400 tabular-nums">
@@ -4918,7 +5278,7 @@ export function AdminPortalView({
                     <button
                       type="submit"
                       disabled={submittingAd}
-                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
+                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>
@@ -4959,7 +5319,7 @@ export function AdminPortalView({
                             />
                           </div>
                           <div className="min-w-0 space-y-1">
-                            <div className="text-xs font-bold text-[#FF6B00]">
+                            <div className="text-xs font-bold text-[#FF7100]">
                               {ad.badgeText} · ترتيب #{ad.sortOrder}
                             </div>
                             <h4 className="text-sm font-bold text-[#F8FAFC] truncate">
@@ -4976,7 +5336,7 @@ export function AdminPortalView({
                             className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
                               ad.isActive
                                 ? 'bg-emerald-500/15 text-emerald-700 text-emerald-300'
-                                : 'bg-slate-200 bg-[#0F172A] text-slate-600 text-[#94A3B8]'
+                                : 'bg-slate-200 bg-[#10192D] text-slate-600 text-[#94A3B8]'
                             }`}
                           >
                             {ad.isActive ? 'معروض الآن' : 'متوقف'}
@@ -5006,7 +5366,7 @@ export function AdminPortalView({
                               }}
                               className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
                                 ad.isActive
-                                  ? 'border border-[#334155] text-[#F8FAFC] hover:bg-[#0F172A]'
+                                  ? 'border border-[#334155] text-[#F8FAFC] hover:bg-[#10192D]'
                                   : 'bg-emerald-600 text-white hover:bg-emerald-700'
                               }`}
                             >
@@ -5040,7 +5400,7 @@ export function AdminPortalView({
             <section className="space-y-6">
               <div className="edkawi-soft-card p-6 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <Sparkles className="w-5 h-5 text-[#FF6B00]" />
+                  <Sparkles className="w-5 h-5 text-[#FF7100]" />
                   <div>
                     <h2 className="text-base font-bold text-[#F8FAFC]">
                       إطلاق فعالية دورية جديدة في مدينة إدكو
@@ -5191,11 +5551,55 @@ export function AdminPortalView({
                     </select>
                   </div>
 
+                  <div>
+                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">
+                      مناسبة إدكو المرتبطة (اختياري)
+                    </label>
+                    <select
+                      value={campOccasionTag}
+                      onChange={(e) => setCampOccasionTag(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#334155] text-sm cursor-pointer"
+                    >
+                      <option value="">بدون تصنيف مناسبة</option>
+                      <option value="فطار العيلة">فطار العيلة</option>
+                      <option value="ليلة الفيلم">ليلة الفيلم</option>
+                      <option value="أكلات بيتي">أكلات بيتي</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#94A3B8] mb-1">
+                      موعد انتهاء العرض (للعد التنازلي)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={campEndsAtIso}
+                      onChange={(e) => setCampEndsAtIso(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#334155] text-sm"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                    <input
+                      id="camp-flash-deal"
+                      type="checkbox"
+                      checked={campIsFlashDeal}
+                      onChange={(e) => setCampIsFlashDeal(e.target.checked)}
+                      className="w-4 h-4 accent-[#FF7100] cursor-pointer"
+                    />
+                    <label
+                      htmlFor="camp-flash-deal"
+                      className="text-xs sm:text-sm font-bold text-[#F8FAFC] cursor-pointer"
+                    >
+                      إبراز كـ &quot;عرض خاطف 15-30 دقيقة&quot; مع عداد تنازلي في الصفحة الرئيسية
+                    </label>
+                  </div>
+
                   <div className="sm:col-span-2 flex justify-end pt-2">
                     <button
                       type="submit"
                       disabled={submittingCampaign}
-                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
+                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
                     >
                       <Flame className="w-4 h-4" />
                       <span>
@@ -5236,7 +5640,7 @@ export function AdminPortalView({
                             />
                           </div>
                           <div className="min-w-0 space-y-1">
-                            <div className="text-xs font-bold text-[#FF6B00]">
+                            <div className="text-xs font-bold text-[#FF7100]">
                               {camp.badgeText}
                             </div>
                             <h4 className="text-sm font-bold text-[#F8FAFC] truncate">
@@ -5397,7 +5801,7 @@ export function AdminPortalView({
                     <button
                       type="submit"
                       disabled={submittingCoupon}
-                      className="w-full min-h-[42px] px-4 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-sm font-bold cursor-pointer"
+                      className="w-full min-h-[42px] px-4 py-2.5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-white text-sm font-bold cursor-pointer"
                     >
                       {submittingCoupon ? 'جارٍ الحفظ...' : 'حفظ الكوبون'}
                     </button>
@@ -5429,7 +5833,7 @@ export function AdminPortalView({
                             <div className="flex items-center gap-2.5 flex-wrap">
                               <span
                                 dir="ltr"
-                                className="font-mono text-base font-bold text-[#FF6B00]"
+                                className="font-mono text-base font-bold text-[#FF7100]"
                               >
                                 {c.code}
                               </span>
@@ -5503,7 +5907,7 @@ export function AdminPortalView({
             <section className="space-y-5">
               <div className="edkawi-soft-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#FF7100]/10 text-[#FF7100] flex items-center justify-center shrink-0">
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
@@ -5573,7 +5977,7 @@ export function AdminPortalView({
                                 <span className="inline-flex items-center gap-1.5">
                                   <span
                                     dir="ltr"
-                                    className="font-mono text-xs sm:text-sm font-bold text-[#FF6B00] tabular-nums"
+                                    className="font-mono text-xs sm:text-sm font-bold text-[#FF7100] tabular-nums"
                                   >
                                     {cust.customerCode}
                                   </span>
@@ -5586,7 +5990,7 @@ export function AdminPortalView({
                                       )
                                     }
                                     title="نسخ كود العميل"
-                                    className="p-1 rounded-lg border border-[#334155] bg-[#0F172A] hover:border-[#FF6B00] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
+                                    className="p-1 rounded-lg border border-[#334155] bg-[#10192D] hover:border-[#FF7100] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
                                   >
                                     {copiedKey === `cc_${cust.uid}` ? (
                                       <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -5617,7 +6021,7 @@ export function AdminPortalView({
                                 </>
                               )}
                               <span aria-hidden="true">·</span>
-                              <span className="font-bold text-[#FF6B00]">
+                              <span className="font-bold text-[#FF7100]">
                                 الرصيد: {cust.points} نقطة
                               </span>
                               <span aria-hidden="true">·</span>
@@ -5644,7 +6048,7 @@ export function AdminPortalView({
                                 }))
                               }
                               placeholder="نقاط (50)"
-                              className="w-28 px-3 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-xs tabular-nums"
+                              className="w-28 px-3 py-2 rounded-2xl bg-[#10192D] border border-[#334155] text-[#F8FAFC] text-xs tabular-nums"
                             />
                             <input
                               type="text"
@@ -5657,13 +6061,13 @@ export function AdminPortalView({
                                 }))
                               }
                               placeholder="رسالة الإهداء (اختياري)"
-                              className="w-40 px-3 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-xs"
+                              className="w-40 px-3 py-2 rounded-2xl bg-[#10192D] border border-[#334155] text-[#F8FAFC] text-xs"
                             />
                             <button
                               type="button"
                               disabled={busyKey === `gift_${cust.uid}`}
                               onClick={() => void handleGiftPointsClick(cust)}
-                              className="min-h-[38px] px-3.5 py-2 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-[#F8FAFC] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                              className="min-h-[38px] px-3.5 py-2 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-[#F8FAFC] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                             >
                               <Gift className="w-3.5 h-3.5" />
                               <span>
@@ -5686,7 +6090,7 @@ export function AdminPortalView({
                                     [cust.uid]: e.target.value as CustomerBanType,
                                   }))
                                 }
-                                className="px-3 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-xs font-semibold cursor-pointer"
+                                className="px-3 py-2 rounded-2xl bg-[#10192D] border border-[#334155] text-[#F8FAFC] text-xs font-semibold cursor-pointer"
                               >
                                 <option value="temporary_24h">حظر مؤقت ٢٤ ساعة</option>
                                 <option value="suspended">إيقاف مؤقت للمراجعة</option>
@@ -5703,7 +6107,7 @@ export function AdminPortalView({
                                   }))
                                 }
                                 placeholder="سبب الحظر (يصل للعميل بإشعار فوري)..."
-                                className="flex-1 min-w-[200px] px-3 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-xs placeholder:text-[#94A3B8]"
+                                className="flex-1 min-w-[200px] px-3 py-2 rounded-2xl bg-[#10192D] border border-[#334155] text-[#F8FAFC] text-xs placeholder:text-[#94A3B8]"
                               />
                             </div>
                           ) : (
@@ -5771,7 +6175,7 @@ export function AdminPortalView({
               <div className="edkawi-soft-card overflow-hidden">
                 <div className="p-5 sm:p-6 border-b border-[#334155] flex flex-wrap items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF6B00]">
+                    <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF7100]">
                       <ShieldAlert className="w-4 h-4" />
                       <span>نظام رصد السلوك المشبوه الآلي (Fraud Detection)</span>
                     </div>
@@ -5815,7 +6219,7 @@ export function AdminPortalView({
                         {fraudAlerts.map((alertItem) => (
                           <tr
                             key={alertItem.id}
-                            className="hover:bg-[#0F172A]/60"
+                            className="hover:bg-[#10192D]/60"
                           >
                             <td className="py-3.5 px-5">
                               <p className="font-bold text-[#F8FAFC]">
@@ -5835,7 +6239,7 @@ export function AdminPortalView({
                             </td>
                             <td
                               dir="ltr"
-                              className="py-3.5 px-4 font-mono font-bold tabular-nums text-right text-[#FF6B00]"
+                              className="py-3.5 px-4 font-mono font-bold tabular-nums text-right text-[#FF7100]"
                             >
                               {alertItem.customerCode || '—'}
                             </td>
@@ -5994,11 +6398,91 @@ export function AdminPortalView({
                 </div>
               </div>
 
+              {/* Pre-Registration Mode Card */}
+              <div
+                className={`rounded-2xl border-2 p-6 space-y-4 ${
+                  maintenanceConfig?.registrationMode
+                    ? 'bg-[#FF7100]/10 border-[#FF7100]/50'
+                    : 'bg-[#1E293B] border-[#334155]'
+                }`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="space-y-1 max-w-2xl">
+                    <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF7100]">
+                      <UserPlus className="w-4 h-4" />
+                      <span>وضع التسجيل المسبق وقفل الشاشات الداخلية (Pre-Registration Mode)</span>
+                    </div>
+                    <h2 className="text-lg font-bold text-[#F8FAFC]">
+                      {maintenanceConfig?.registrationMode
+                        ? 'وضع التسجيل المسبق مُفعّل حالياً'
+                        : 'التطبيق متاح للجميع بشكل طبيعي'}
+                    </h2>
+                    <p className="text-xs text-[#94A3B8] leading-relaxed">
+                      عند تفعيل وضع التسجيل المسبق، تبقى صفحات تسجيل الدخول والتسجيل والدعوات مفتوحة للجميع، بينما يرى المستخدمون العاديون شاشة التسجيل المسبق عند دخول التطبيق وتظل لوحة الإدارة مفتوحة للأدمن (01032874716).
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={savingRegistrationMode}
+                    onClick={() =>
+                      void handleSaveRegistrationMode(
+                        !maintenanceConfig?.registrationMode
+                      )
+                    }
+                    className={`min-h-[44px] px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                      maintenanceConfig?.registrationMode
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : 'bg-[#FF7100] hover:bg-[#E66600] text-white'
+                    }`}
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>
+                      {savingRegistrationMode
+                        ? 'جارٍ التحديث...'
+                        : maintenanceConfig?.registrationMode
+                        ? 'إيقاف وضع التسجيل المسبق'
+                        : 'تفعيل وضع التسجيل المسبق'}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end pt-2 border-t border-[#334155]">
+                  <div className="sm:col-span-9">
+                    <label className="block text-xs font-bold text-[#94A3B8] mb-1.5">
+                      رسالة صفحة التسجيل المسبق
+                    </label>
+                    <textarea
+                      rows={2}
+                      maxLength={300}
+                      value={regMessageInput}
+                      onChange={(e) => setRegMessageInput(e.target.value)}
+                      placeholder="اكتب الرسالة التي تظهر للمستخدمين أثناء وضع التسجيل المسبق..."
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#334155] text-sm resize-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <button
+                      type="button"
+                      disabled={savingRegistrationMode}
+                      onClick={() =>
+                        void handleSaveRegistrationMode(
+                          Boolean(maintenanceConfig?.registrationMode)
+                        )
+                      }
+                      className="w-full min-h-[44px] px-4 py-2.5 rounded-2xl bg-[#10192D] hover:bg-[#334155] border border-[#334155] text-[#F8FAFC] text-xs font-bold cursor-pointer"
+                    >
+                      حفظ رسالة التسجيل المسبق
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Surge Pricing, Payment Methods & SMTP Live Operations Card */}
               <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 space-y-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF6B00]">
+                    <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF7100]">
                       <Zap className="w-4 h-4" />
                       <span>إعدادات التشغيل والذروة ووسائل الدفع</span>
                     </div>
@@ -6011,7 +6495,7 @@ export function AdminPortalView({
                     type="button"
                     disabled={savingOperationsSettings}
                     onClick={() => void handleSaveSystemOperationsSettings()}
-                    className="min-h-[42px] px-5 py-2 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-[#F8FAFC] text-xs sm:text-sm font-bold cursor-pointer"
+                    className="min-h-[42px] px-5 py-2 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-[#F8FAFC] text-xs sm:text-sm font-bold cursor-pointer"
                   >
                     {savingOperationsSettings ? 'جارٍ الحفظ...' : 'حفظ إعدادات التشغيل'}
                   </button>
@@ -6019,17 +6503,17 @@ export function AdminPortalView({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Surge Pricing */}
-                  <div className="p-4 rounded-2xl bg-[#0F172A] border border-[#334155] space-y-3">
+                  <div className="p-4 rounded-2xl bg-[#10192D] border border-[#334155] space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-1.5">
-                        <Zap className="w-4 h-4 text-[#FF6B00]" />
+                        <Zap className="w-4 h-4 text-[#FF7100]" />
                         تسعير وقت الذروة
                       </span>
                       <input
                         type="checkbox"
                         checked={surgeEnabledInput}
                         onChange={(e) => setSurgeEnabledInput(e.target.checked)}
-                        className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
+                        className="w-4 h-4 accent-[#FF7100] cursor-pointer"
                       />
                     </div>
                     <div>
@@ -6050,9 +6534,9 @@ export function AdminPortalView({
                   </div>
 
                   {/* Payment Methods */}
-                  <div className="p-4 rounded-2xl bg-[#0F172A] border border-[#334155] space-y-2.5">
+                  <div className="p-4 rounded-2xl bg-[#10192D] border border-[#334155] space-y-2.5">
                     <span className="text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-1.5">
-                      <CreditCard className="w-4 h-4 text-[#FF6B00]" />
+                      <CreditCard className="w-4 h-4 text-[#FF7100]" />
                       وسائل الدفع المتاحة للعملاء
                     </span>
                     <label className="flex items-center justify-between text-xs text-[#F8FAFC] cursor-pointer">
@@ -6063,7 +6547,7 @@ export function AdminPortalView({
                         onChange={(e) =>
                           setPaymentMethodsInput((prev) => ({ ...prev, cash: e.target.checked }))
                         }
-                        className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
+                        className="w-4 h-4 accent-[#FF7100] cursor-pointer"
                       />
                     </label>
                     <label className="flex items-center justify-between text-xs text-[#F8FAFC] cursor-pointer">
@@ -6074,7 +6558,7 @@ export function AdminPortalView({
                         onChange={(e) =>
                           setPaymentMethodsInput((prev) => ({ ...prev, wallet: e.target.checked }))
                         }
-                        className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
+                        className="w-4 h-4 accent-[#FF7100] cursor-pointer"
                       />
                     </label>
                     <label className="flex items-center justify-between text-xs text-[#F8FAFC] cursor-pointer">
@@ -6085,23 +6569,23 @@ export function AdminPortalView({
                         onChange={(e) =>
                           setPaymentMethodsInput((prev) => ({ ...prev, visa: e.target.checked }))
                         }
-                        className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
+                        className="w-4 h-4 accent-[#FF7100] cursor-pointer"
                       />
                     </label>
                   </div>
 
                   {/* SMTP Status */}
-                  <div className="p-4 rounded-2xl bg-[#0F172A] border border-[#334155] space-y-2.5">
+                  <div className="p-4 rounded-2xl bg-[#10192D] border border-[#334155] space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-bold text-[#F8FAFC] inline-flex items-center gap-1.5">
-                        <Mail className="w-4 h-4 text-[#FF6B00]" />
+                        <Mail className="w-4 h-4 text-[#FF7100]" />
                         حالة خادم البريد (SMTP)
                       </span>
                       <input
                         type="checkbox"
                         checked={smtpEnabledInput}
                         onChange={(e) => setSmtpEnabledInput(e.target.checked)}
-                        className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
+                        className="w-4 h-4 accent-[#FF7100] cursor-pointer"
                       />
                     </div>
                     <div className="text-xs space-y-1">
@@ -6297,7 +6781,7 @@ export function AdminPortalView({
                   <p className="text-xs font-semibold text-[#94A3B8]">
                     إجمالي الطلبات في قاعدة البيانات
                   </p>
-                  <p className="font-mono text-2xl sm:text-3xl font-bold tabular-nums text-[#FF6B00]">
+                  <p className="font-mono text-2xl sm:text-3xl font-bold tabular-nums text-[#FF7100]">
                     {orders.length}
                   </p>
                   <p className="text-[11px] text-[#94A3B8] tabular-nums">
@@ -6336,7 +6820,7 @@ export function AdminPortalView({
                     type="button"
                     disabled={qaRunningAction !== null}
                     onClick={() => void handleRunSimulateOrderTest()}
-                    className="min-h-[56px] px-5 py-3.5 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 cursor-pointer"
+                    className="min-h-[56px] px-5 py-3.5 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 cursor-pointer"
                   >
                     <Beaker className="w-5 h-5 shrink-0" />
                     <span>
@@ -6352,7 +6836,7 @@ export function AdminPortalView({
                     onClick={() => void handleRunFirebaseHealthCheck()}
                     className="min-h-[56px] px-5 py-3.5 rounded-2xl bg-[#1E293B] hover:bg-slate-800 disabled:opacity-60 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 cursor-pointer"
                   >
-                    <Database className="w-5 h-5 text-[#FF6B00] shrink-0" />
+                    <Database className="w-5 h-5 text-[#FF7100] shrink-0" />
                     <span>
                       {qaRunningAction === 'health'
                         ? 'جارٍ قياس الاستجابة...'
@@ -6478,7 +6962,7 @@ export function AdminPortalView({
               <div className="edkawi-soft-card p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[#1E293B] text-white flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5 text-[#FF6B00]" />
+                    <FileText className="w-5 h-5 text-[#FF7100]" />
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-[#F8FAFC]">
@@ -6565,12 +7049,12 @@ export function AdminPortalView({
                           return (
                             <tr
                               key={logItem.id}
-                              className="hover:bg-[#0F172A]/60"
+                              className="hover:bg-[#10192D]/60"
                             >
                               <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs tabular-nums text-[#94A3B8]">
                                 {formattedTime}
                               </td>
-                              <td className="py-3.5 px-4 whitespace-nowrap font-bold text-[#FF6B00]">
+                              <td className="py-3.5 px-4 whitespace-nowrap font-bold text-[#FF7100]">
                                 {getAuditActionLabelAr(logItem.actionType)}
                               </td>
                               <td className="py-3.5 px-4 text-[#F8FAFC] max-w-xl">
@@ -6622,6 +7106,24 @@ export function AdminPortalView({
             <AdminStaffManagementSection
               adminUid={adminUid}
               staffMembers={staffMembers}
+              onNotify={(msg) => {
+                setSuccessBanner(msg);
+                onNotify?.(msg);
+              }}
+            />
+          )}
+
+          {activeSection === 'finance' && (
+            <AdminFinancialCenter
+              orders={orders}
+              stores={stores}
+              couriers={couriers}
+              driverWallets={driverWallets}
+              transactions={financialTransactions}
+              treasuryReceipts={treasuryReceipts}
+              restaurantSettlements={restaurantSettlements}
+              financialExceptions={financialExceptions}
+              adminUid={adminUid}
               onNotify={(msg) => {
                 setSuccessBanner(msg);
                 onNotify?.(msg);
@@ -6689,7 +7191,7 @@ export function AdminPortalView({
                     <span className="text-slate-400 block text-[11px]">
                       Password
                     </span>
-                    <span className="font-bold text-[#FF6B00]">
+                    <span className="font-bold text-[#FF7100]">
                       {createdCourierCred.password}
                     </span>
                   </div>
@@ -6704,7 +7206,7 @@ export function AdminPortalView({
                         'modal_courier_cred'
                       )
                     }
-                    className="flex-1 py-3 px-4 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Copy className="w-4 h-4" aria-hidden="true" />
                     <span>
@@ -6879,7 +7381,7 @@ export function AdminPortalView({
                   <button
                     type="submit"
                     disabled={submittingCourier}
-                    className="flex-1 py-3 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-60 text-white font-bold text-sm cursor-pointer"
+                    className="flex-1 py-3 px-5 rounded-xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-60 text-white font-bold text-sm cursor-pointer"
                   >
                     {submittingCourier
                       ? 'جارٍ إنشاء الحساب...'
@@ -6905,7 +7407,7 @@ export function AdminPortalView({
           <div className="edkawi-soft-card max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#334155]">
               <h3 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                <Mail className="w-5 h-5 text-[#FF6B00]" />
+                <Mail className="w-5 h-5 text-[#FF7100]" />
                 <span>إنشاء دعوة جديدة للمنصة</span>
               </h3>
               <button
@@ -6964,7 +7466,7 @@ export function AdminPortalView({
                 <button
                   type="submit"
                   disabled={isCreatingInvite || !inviteEmail.trim()}
-                  className="min-h-[44px] px-6 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-50 text-white text-xs sm:text-sm font-bold cursor-pointer"
+                  className="min-h-[44px] px-6 rounded-xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-50 text-white text-xs sm:text-sm font-bold cursor-pointer"
                 >
                   {isCreatingInvite ? 'جارٍ الإنشاء...' : 'إرسال وتوليد الدعوة'}
                 </button>
@@ -7018,7 +7520,7 @@ export function AdminPortalView({
                 <button
                   type="submit"
                   disabled={busyKey === 'update_email_btn' || !adminNewEmailInput.trim()}
-                  className="min-h-[44px] px-6 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-50 text-white text-xs sm:text-sm font-bold cursor-pointer"
+                  className="min-h-[44px] px-6 rounded-xl bg-[#FF7100] hover:bg-[#E66600] disabled:opacity-50 text-white text-xs sm:text-sm font-bold cursor-pointer"
                 >
                   {busyKey === 'update_email_btn' ? 'جارٍ التحديث...' : 'تحديث البريد'}
                 </button>
@@ -7044,7 +7546,7 @@ export function AdminPortalView({
               <button
                 type="button"
                 onClick={() => setZoomedTopupReceiptUrl(null)}
-                className="p-1.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
+                className="p-1.5 rounded-xl bg-[#10192D] border border-[#334155] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -7052,7 +7554,7 @@ export function AdminPortalView({
             <img
               src={zoomedTopupReceiptUrl}
               alt="إيصال التحويل"
-              className="w-full max-h-[75vh] object-contain rounded-xl bg-[#0F172A]"
+              className="w-full max-h-[75vh] object-contain rounded-xl bg-[#10192D]"
             />
           </div>
         </div>
@@ -7078,7 +7580,7 @@ export function AdminPortalView({
                 type="button"
                 onClick={() => setZoomedKycDoc(null)}
                 aria-label="إغلاق المعاينة"
-                className="p-1.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer shrink-0"
+                className="p-1.5 rounded-xl bg-[#10192D] border border-[#334155] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -7086,7 +7588,7 @@ export function AdminPortalView({
             <img
               src={zoomedKycDoc.url}
               alt={zoomedKycDoc.title}
-              className="w-full max-h-[75vh] object-contain rounded-xl bg-[#0F172A]"
+              className="w-full max-h-[75vh] object-contain rounded-xl bg-[#10192D]"
             />
           </div>
         </div>

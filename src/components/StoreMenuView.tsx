@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
   ArrowRight,
@@ -24,6 +25,7 @@ import {
   Trash2,
   Truck,
   Users,
+  X,
 } from 'lucide-react';
 import {
   APPROVED_EDKO_ZONES,
@@ -163,6 +165,7 @@ export function StoreMenuView({
     null
   );
   const [copiedGroupLink, setCopiedGroupLink] = useState(false);
+  const [lightboxPhotoUrl, setLightboxPhotoUrl] = useState<string | null>(null);
 
   const hasAnyFlashSale = useMemo(
     () =>
@@ -323,7 +326,7 @@ export function StoreMenuView({
   return (
     <div className="pb-28 edkawi-page-enter">
       {/* Large Top Cover Banner (Real Device Image Only) */}
-      <div className="relative w-full h-64 sm:h-80 lg:h-[340px] bg-[#1E293B] overflow-hidden">
+      <div className="relative w-full h-64 sm:h-80 lg:h-[340px] bg-white dark:bg-[#1E293B] overflow-hidden">
         <ResilientImage
           src={store.imageUrl || ''}
           alt={store.name}
@@ -333,7 +336,7 @@ export function StoreMenuView({
 
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0F172A]/85 via-[#0F172A]/30 to-black/35"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#10192D]/85 via-[#10192D]/30 to-black/35"
         />
 
         {/* Floating Glass Back & Favorite Buttons */}
@@ -342,10 +345,10 @@ export function StoreMenuView({
             <button
               type="button"
               onClick={onBackToStores}
-              className="inline-flex items-center gap-2 py-2.5 px-4 rounded-2xl bg-[#1E293B]/95 hover:bg-[#1E293B] border border-[#334155] backdrop-blur-md text-xs sm:text-sm font-bold text-[#F8FAFC] shadow-md cursor-pointer whitespace-nowrap active:scale-[0.97]"
+              className="inline-flex items-center gap-2 py-2.5 px-4 rounded-2xl bg-white/95 dark:bg-[#1E293B]/95 hover:bg-white dark:hover:bg-[#1E293B] border border-slate-200 dark:border-[#334155] backdrop-blur-md text-xs sm:text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] shadow-md cursor-pointer whitespace-nowrap active:scale-[0.97]"
             >
               <ArrowRight
-                className="w-4 h-4 text-[#FF6B00]"
+                className="w-4 h-4 text-[#FF7100]"
                 aria-hidden="true"
               />
               <span>العودة إلى المتاجر</span>
@@ -357,7 +360,7 @@ export function StoreMenuView({
                   type="button"
                   disabled={startingGroupOrder}
                   onClick={handleStartGroupOrderClick}
-                  className="min-h-[42px] px-4 py-2 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] text-xs sm:text-sm font-bold text-white shadow-md inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="min-h-[42px] px-4 py-2 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] text-xs sm:text-sm font-bold text-white shadow-md inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   <Users className="w-4 h-4 text-white" />
                   <span>
@@ -373,13 +376,13 @@ export function StoreMenuView({
                   aria-label={
                     isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'
                   }
-                  className="min-h-[42px] px-4 py-2 rounded-2xl bg-[#1E293B]/95 hover:bg-[#1E293B] border border-[#334155] backdrop-blur-md text-xs sm:text-sm font-bold text-[#F8FAFC] shadow-md inline-flex items-center gap-2 cursor-pointer"
+                  className="min-h-[42px] px-4 py-2 rounded-2xl bg-white/95 dark:bg-[#1E293B]/95 hover:bg-white dark:hover:bg-[#1E293B] border border-slate-200 dark:border-[#334155] backdrop-blur-md text-xs sm:text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC] shadow-md inline-flex items-center gap-2 cursor-pointer"
                 >
                   <Heart
                     className={`w-4 h-4 ${
                       isFavorite
                         ? 'fill-rose-500 text-rose-500'
-                        : 'text-[#94A3B8]'
+                        : 'text-slate-600 dark:text-[#94A3B8]'
                     }`}
                   />
                   <span>{isFavorite ? 'في المفضلة' : 'حفظ بالمفضلة'}</span>
@@ -392,10 +395,10 @@ export function StoreMenuView({
 
       {/* Overlapping Store Info Card */}
       <div className="max-w-5xl mx-auto px-4 sm:px-8 -mt-20 sm:-mt-24 relative z-20">
-        <section className="rounded-2xl bg-[#1E293B] border border-[#334155] p-6 sm:p-8 shadow-2xl">
+        <section className="rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-6 sm:p-8 shadow-2xl">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
             <div className="space-y-2.5 max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#FF6B00]">
+              <div className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#FF7100]">
                 {isPharmacyStore ? (
                   <Pill className="w-4 h-4 shrink-0" aria-hidden="true" />
                 ) : (
@@ -409,35 +412,35 @@ export function StoreMenuView({
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#F8FAFC] leading-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1E293B] dark:text-[#F8FAFC] leading-tight">
                 {store.name}
               </h1>
 
-              <p className="text-sm sm:text-base text-[#94A3B8] leading-relaxed">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-[#94A3B8] leading-relaxed">
                 {store.description}
               </p>
             </div>
 
             {/* Store Metrics */}
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-xs sm:text-sm font-bold">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-xs sm:text-sm font-bold">
                 <Star
-                  className="w-4 h-4 fill-[#FF6B00] text-[#FF6B00]"
+                  className="w-4 h-4 fill-[#FF7100] text-[#FF7100]"
                   aria-hidden="true"
                 />
                 <span className="font-mono tabular-nums">
                   {store.rating.toFixed(1)}
                 </span>
                 {(store.reviewCount || reviews.length > 0) && (
-                  <span className="text-xs text-[#94A3B8] tabular-nums">
+                  <span className="text-xs text-slate-600 dark:text-[#94A3B8] tabular-nums">
                     ({store.reviewCount ?? reviews.length} تقييم)
                   </span>
                 )}
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-xs sm:text-sm font-bold">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-xs sm:text-sm font-bold">
                 <Clock
-                  className="w-4 h-4 text-[#FF6B00]"
+                  className="w-4 h-4 text-[#FF7100]"
                   aria-hidden="true"
                 />
                 <span>
@@ -448,9 +451,9 @@ export function StoreMenuView({
                 </span>
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-xs sm:text-sm font-bold">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-xs sm:text-sm font-bold">
                 <Truck
-                  className="w-4 h-4 text-[#FF6B00]"
+                  className="w-4 h-4 text-[#FF7100]"
                   aria-hidden="true"
                 />
                 <span>
@@ -463,7 +466,7 @@ export function StoreMenuView({
               </div>
 
               {hasMinOrder && (
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-xs sm:text-sm font-bold">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-xs sm:text-sm font-bold">
                   <span>
                     الحد الأدنى{' '}
                     <span className="font-mono tabular-nums">
@@ -477,7 +480,7 @@ export function StoreMenuView({
           </div>
 
           {groupOrderFeedback && (
-            <div className="mt-4 p-3.5 rounded-2xl bg-amber-950/50 border border-amber-500/40 text-xs font-semibold text-amber-200">
+            <div className="mt-4 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-500/40 text-xs font-semibold text-amber-800 dark:text-amber-200">
               {groupOrderFeedback}
             </div>
           )}
@@ -485,7 +488,7 @@ export function StoreMenuView({
           {!isOpen && (
             <div
               role="status"
-              className="mt-6 p-4 rounded-2xl bg-red-950/50 border border-red-500/40 text-red-200 text-xs sm:text-sm font-bold flex items-center gap-2.5"
+              className="mt-6 p-4 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-500/40 text-red-800 dark:text-red-200 text-xs sm:text-sm font-bold flex items-center gap-2.5"
             >
               <Lock className="w-4 h-4 text-red-400 shrink-0" aria-hidden="true" />
               <span>
@@ -505,11 +508,11 @@ export function StoreMenuView({
           <section className="rounded-3xl bg-[#1E293B] text-white p-6 space-y-4 shadow-xl border border-slate-700">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF6B00]">
+                <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF7100]">
                   <Share2 className="w-4 h-4" />
                   <span>طلب جماعي مشترك مباشر · المضيف: {activeSharedCart.hostName}</span>
                   {activeSharedCart.roomCode && (
-                    <span className="bg-[#FF6B00]/20 border border-[#FF6B00]/40 text-[#FF6B00] px-2 py-0.5 rounded-lg font-mono">
+                    <span className="bg-[#FF7100]/20 border border-[#FF7100]/40 text-[#FF7100] px-2 py-0.5 rounded-lg font-mono">
                       كود الغرفة: {activeSharedCart.roomCode}
                     </span>
                   )}
@@ -540,7 +543,7 @@ export function StoreMenuView({
                     setCopiedGroupLink(true);
                     setTimeout(() => setCopiedGroupLink(false), 2000);
                   }}
-                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   {copiedGroupLink ? (
                     <Check className="w-3.5 h-3.5 text-white" />
@@ -570,7 +573,7 @@ export function StoreMenuView({
               <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-4">
                 {/* Per-participant breakdown ("مين ضاف إيه") */}
                 <div className="space-y-2.5">
-                  <p className="text-xs font-bold text-[#FF6B00]">
+                  <p className="text-xs font-bold text-[#FF7100]">
                     تفصيل الطلب الجماعي — مين ضاف إيه؟
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -596,7 +599,7 @@ export function StoreMenuView({
                           <span className="text-xs font-bold text-white">
                             {group.name}
                           </span>
-                          <span className="text-xs font-mono font-bold text-[#FF6B00] tabular-nums">
+                          <span className="text-xs font-mono font-bold text-[#FF7100] tabular-nums">
                             {group.subtotal} ج.م
                           </span>
                         </div>
@@ -610,7 +613,7 @@ export function StoreMenuView({
                             return (
                               <div
                                 key={entry.entryId}
-                                className="flex items-center justify-between gap-2 bg-[#0F172A]/60 rounded-xl px-2.5 py-1.5 border border-[#334155]/60"
+                                className="flex items-center justify-between gap-2 bg-[#10192D]/60 rounded-xl px-2.5 py-1.5 border border-[#334155]/60 text-slate-100"
                               >
                                 <span className="truncate">
                                   {entry.name} × {entry.quantity}
@@ -631,7 +634,7 @@ export function StoreMenuView({
                                           )
                                         }
                                         aria-label={`زيادة ${entry.name}`}
-                                        className="w-6 h-6 rounded-lg bg-[#FF6B00] hover:bg-[#E55F00] text-white flex items-center justify-center cursor-pointer"
+                                        className="w-6 h-6 rounded-lg bg-[#FF7100] hover:bg-[#E66600] text-white flex items-center justify-center cursor-pointer"
                                       >
                                         <Plus className="w-3 h-3" />
                                       </button>
@@ -645,7 +648,7 @@ export function StoreMenuView({
                                           )
                                         }
                                         aria-label={`إنقاص ${entry.name}`}
-                                        className="w-6 h-6 rounded-lg bg-[#1E293B] border border-[#334155] hover:border-[#FF6B00] text-white flex items-center justify-center cursor-pointer"
+                                        className="w-6 h-6 rounded-lg bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4] text-white flex items-center justify-center cursor-pointer"
                                       >
                                         <Minus className="w-3 h-3" />
                                       </button>
@@ -680,7 +683,7 @@ export function StoreMenuView({
                     <button
                       type="button"
                       onClick={() => onCheckoutSharedCart(activeSharedCart)}
-                      className="min-h-[42px] px-5 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
+                      className="min-h-[42px] px-5 py-2 rounded-xl bg-[#FF7100] hover:bg-[#E66600] text-white text-xs sm:text-sm font-bold inline-flex items-center gap-2 cursor-pointer"
                     >
                       <span>اعتماد السلة الجماعية والانتقال للدفع</span>
                       <ArrowLeft className="w-4 h-4" />
@@ -698,9 +701,9 @@ export function StoreMenuView({
         {isPharmacyStore && onSubmitPharmacyOrder && (
           <section
             aria-labelledby="pharmacy-order-heading"
-            className="rounded-2xl bg-[#1E293B] p-6 sm:p-8 border border-emerald-500/40 space-y-6"
+            className="rounded-2xl bg-white dark:bg-[#1E293B] p-6 sm:p-8 border border-emerald-500/40 space-y-6"
           >
-            <div className="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-[#334155]">
+            <div className="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-slate-200 dark:border-[#334155]">
               <div className="space-y-1.5 max-w-2xl">
                 <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-400">
                   <Pill className="w-4 h-4" />
@@ -708,11 +711,11 @@ export function StoreMenuView({
                 </div>
                 <h2
                   id="pharmacy-order-heading"
-                  className="text-xl sm:text-2xl font-bold text-[#F8FAFC]"
+                  className="text-xl sm:text-2xl font-bold text-[#1E293B] dark:text-[#F8FAFC]"
                 >
                   إرسال روشتة طبية أو طلب أدوية من {store.name}
                 </h2>
-                <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
                   ارفع صورة الروشتة من جهازك أو اكتب الأدوية المطلوبة. ستقوم
                   الصيدلية بتسعير الطلب وإرساله لك للموافقة على السعر أولاً قبل
                   التحضير والتوصيل!
@@ -725,15 +728,15 @@ export function StoreMenuView({
             </div>
 
             {isGuestCustomer ? (
-              <div className="rounded-2xl bg-[#0F172A] border border-[#334155] p-6 text-center space-y-3">
-                <p className="text-sm font-bold text-[#F8FAFC]">
+              <div className="rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] p-6 text-center space-y-3">
+                <p className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                   يرجى تسجيل الدخول لإرسال الروشتة واستلام إشعار السعر من الصيدلية
                 </p>
                 {onOpenAuthModal && (
                   <button
                     type="button"
                     onClick={onOpenAuthModal}
-                    className="min-h-[44px] px-6 py-2.5 rounded-2xl bg-[#FF6B00] hover:bg-[#E55F00] text-white text-sm font-bold cursor-pointer"
+                    className="min-h-[44px] px-6 py-2.5 rounded-2xl bg-[#FF7100] hover:bg-[#E66600] text-white text-sm font-bold cursor-pointer"
                   >
                     تسجيل الدخول أو إنشاء حساب الآن
                   </button>
@@ -764,8 +767,8 @@ export function StoreMenuView({
                     />
 
                     <div>
-                      <label className="block text-xs font-bold text-[#F8FAFC] mb-1.5 flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5 text-[#FF6B00]" />
+                      <label className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-[#FF7100]" />
                         <span>أو اكتب أسماء الأدوية المطلوبة والتركيز</span>
                       </label>
                       <textarea
@@ -774,12 +777,12 @@ export function StoreMenuView({
                         value={rxMedicineText}
                         onChange={(e) => setRxMedicineText(e.target.value)}
                         placeholder="مثال: بانادول إكسترا شريطين + فيتامين سي ١٠٠٠ فوار علبة واحدة (أو البديل المتاح)..."
-                        className="w-full px-4 py-3 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] text-sm resize-none"
+                        className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-slate-600 dark:text-[#94A3B8] text-sm resize-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[#F8FAFC] mb-1.5">
+                      <label className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1.5">
                         ملاحظات إضافية للصيدلي (اختياري)
                       </label>
                       <input
@@ -788,7 +791,7 @@ export function StoreMenuView({
                         value={rxNotes}
                         onChange={(e) => setRxNotes(e.target.value)}
                         placeholder="مثال: أفضّل الدواء الأصلي أو توضيح الجرعة"
-                        className="w-full min-h-[44px] px-4 py-2.5 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] text-sm"
+                        className="w-full min-h-[44px] px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-slate-600 dark:text-[#94A3B8] text-sm"
                       />
                     </div>
                   </div>
@@ -797,7 +800,7 @@ export function StoreMenuView({
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                        <label className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1">
                           اسم المستلم
                         </label>
                         <input
@@ -806,16 +809,16 @@ export function StoreMenuView({
                           value={rxCustomerName}
                           onChange={(e) => setRxCustomerName(e.target.value)}
                           placeholder="الاسم بالكامل"
-                          className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-sm"
+                          className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-sm"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                        <label className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1">
                           رقم الموبايل المصري
                         </label>
                         <div className="relative">
-                          <Phone className="w-4 h-4 text-[#94A3B8] absolute right-3.5 top-3.5" />
+                          <Phone className="w-4 h-4 text-slate-600 dark:text-[#94A3B8] absolute right-3.5 top-3.5" />
                           <input
                             type="tel"
                             required
@@ -823,7 +826,7 @@ export function StoreMenuView({
                             value={rxCustomerPhone}
                             onChange={(e) => setRxCustomerPhone(e.target.value)}
                             placeholder="01012345678"
-                            className="w-full min-h-[44px] pr-10 pl-3.5 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-sm text-right tabular-nums"
+                            className="w-full min-h-[44px] pr-10 pl-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-sm text-right tabular-nums"
                           />
                         </div>
                       </div>
@@ -857,7 +860,7 @@ export function StoreMenuView({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                        <label className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1">
                           الحي في إدكو
                         </label>
                         <select
@@ -871,7 +874,7 @@ export function StoreMenuView({
                             setRxLat(coords.lat);
                             setRxLng(coords.lng);
                           }}
-                          className="w-full min-h-[44px] px-3 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-sm"
+                          className="w-full min-h-[44px] px-3 py-2 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-sm"
                         >
                           {EDKU_NEIGHBORHOODS.map((area) => (
                             <option key={area} value={area}>
@@ -882,7 +885,7 @@ export function StoreMenuView({
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                        <label className="block text-xs font-bold text-[#1E293B] dark:text-[#F8FAFC] mb-1">
                           علامة مميزة أو رقم العقار
                         </label>
                         <input
@@ -891,7 +894,7 @@ export function StoreMenuView({
                           value={rxAddress}
                           onChange={(e) => setRxAddress(e.target.value)}
                           placeholder="بجوار مسجد... الدور الثاني"
-                          className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl bg-[#0F172A] border border-[#334155] text-[#F8FAFC] text-sm"
+                          className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-[#1E293B] dark:text-[#F8FAFC] text-sm"
                         />
                       </div>
                     </div>
@@ -925,13 +928,13 @@ export function StoreMenuView({
               <div>
                 <h2
                   id="store-products-heading"
-                  className="text-xl sm:text-2xl font-bold text-[#F8FAFC]"
+                  className="text-xl sm:text-2xl font-bold text-[#1E293B] dark:text-[#F8FAFC]"
                 >
                   {isPharmacyStore
                     ? 'مستلزمات ومنتجات متوفرة بالصيدلية'
                     : 'قائمة الأصناف المتاحة'}
                 </h2>
-                <p className="text-xs sm:text-sm text-[#94A3B8] mt-1">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8] mt-1">
                   اختر أصنافك المفضلة واضغط على &quot;إضافة +&quot; لإضافتها فوراً إلى السلة
                 </p>
               </div>
@@ -941,7 +944,7 @@ export function StoreMenuView({
                   ابحث داخل قائمة المتجر
                 </label>
                 <Search
-                  className="w-4 h-4 text-[#94A3B8] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                  className="w-4 h-4 text-slate-600 dark:text-[#94A3B8] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
                   aria-hidden="true"
                 />
                 <input
@@ -950,7 +953,7 @@ export function StoreMenuView({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="ابحث داخل القائمة..."
-                  className="w-full pr-11 pl-4 py-3 rounded-2xl border border-[#334155] bg-[#1E293B] text-[#F8FAFC] placeholder:text-[#94A3B8] text-sm"
+                  className="w-full pr-11 pl-4 py-3 rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-slate-600 dark:text-[#94A3B8] text-sm"
                 />
               </div>
             </div>
@@ -959,7 +962,7 @@ export function StoreMenuView({
               <div
                 role="group"
                 aria-label="تصفية منتجات المتجر حسب القسم"
-                className="flex items-center gap-1.5 p-1.5 bg-[#1E293B] rounded-2xl border border-[#334155] overflow-x-auto w-fit max-w-full"
+                className="flex items-center gap-1.5 p-1.5 bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-200 dark:border-[#334155] overflow-x-auto w-fit max-w-full"
               >
                 {subCategories.map((sub) => {
                   const active = selectedSubCategory === sub;
@@ -970,8 +973,8 @@ export function StoreMenuView({
                       onClick={() => setSelectedSubCategory(sub)}
                       className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl whitespace-nowrap shrink-0 cursor-pointer active:scale-[0.96] ${
                         active
-                          ? 'bg-[#FF6B00] text-white'
-                          : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#0F172A]'
+                          ? 'bg-[#46D5D4] text-[#0F172A]'
+                          : 'text-slate-600 dark:text-[#94A3B8] hover:text-[#1E293B] dark:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#10192D]'
                       }`}
                     >
                       {sub}
@@ -984,7 +987,7 @@ export function StoreMenuView({
             {productsError && (
               <div
                 role="alert"
-                className="p-5 rounded-2xl bg-red-950/50 border border-red-500/40 text-red-200 text-sm"
+                className="p-5 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-500/40 text-red-800 dark:text-red-200 text-sm"
               >
                 تعذر جلب منتجات المتجر: {productsError}
               </div>
@@ -1098,9 +1101,9 @@ export function StoreMenuView({
                   return (
                     <article
                       key={product.id}
-                      className="rounded-2xl bg-[#1E293B] border border-[#334155] hover:border-[#FF6B00]/60 transition-colors p-4 sm:p-5 flex flex-row items-stretch gap-4 sm:gap-5 group"
+                      className="rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4]/60 transition-colors p-4 sm:p-5 flex flex-row items-stretch gap-4 sm:gap-5 group"
                     >
-                      <div className="w-28 sm:w-36 min-h-[118px] sm:min-h-[136px] rounded-2xl overflow-hidden bg-[#0F172A] shrink-0 relative">
+                      <div className="w-28 sm:w-36 min-h-[118px] sm:min-h-[136px] rounded-2xl overflow-hidden bg-slate-50 dark:bg-[#10192D] shrink-0 relative">
                         <ResilientImage
                           src={product.imageUrl || ''}
                           alt={product.name}
@@ -1113,12 +1116,12 @@ export function StoreMenuView({
                         />
 
                         {isFlashActive ? (
-                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-[#FF6B00] text-white text-[10px] font-bold inline-flex items-center gap-1 shadow-sm">
+                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-[#FF7100] text-white text-[10px] font-bold inline-flex items-center gap-1 shadow-sm">
                             <Flame className="w-3 h-3" />
                             <span>خصم فلاش {product.flashDiscountPercent}%</span>
                           </span>
                         ) : product.isMysteryBox ? (
-                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-[#FF6B00] text-white text-[10px] font-bold inline-flex items-center gap-1 shadow-sm">
+                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-[#FF7100] text-white text-[10px] font-bold inline-flex items-center gap-1 shadow-sm">
                             <Gift className="w-3 h-3" />
                             <span>صندوق مفاجآت</span>
                           </span>
@@ -1128,11 +1131,11 @@ export function StoreMenuView({
                       <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5 text-right">
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="text-[11px] sm:text-xs font-bold text-[#FF6B00] truncate">
+                            <p className="text-[11px] sm:text-xs font-bold text-[#FF7100] truncate">
                               {product.category}
                             </p>
                             {isFlashActive ? (
-                              <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded-lg tabular-nums shrink-0">
+                              <span className="text-[10px] font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/40 px-2 py-0.5 rounded-lg tabular-nums shrink-0">
                                 ينتهي خلال {flashCountdownText}
                               </span>
                             ) : outOfStock ? (
@@ -1146,17 +1149,17 @@ export function StoreMenuView({
                             ) : null}
                           </div>
 
-                          <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC] leading-snug">
+                          <h3 className="text-base sm:text-lg font-bold text-[#1E293B] dark:text-[#F8FAFC] leading-snug">
                             {product.name}
                           </h3>
-                          <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed line-clamp-2 mt-1">
+                          <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-2 mt-1">
                             {product.description}
                           </p>
 
                           {/* Smart Variants Selector (Sizes / Colors / Cosmetic Shades) */}
                           {hasVariants && product.variants && (
                             <div className="mt-2.5 space-y-1.5">
-                              <p className="text-[11px] font-bold text-[#F8FAFC]">
+                              <p className="text-[11px] font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                                 اختر المقاس / اللون / الدرجة:
                               </p>
                               <div className="flex flex-wrap gap-1.5">
@@ -1190,10 +1193,10 @@ export function StoreMenuView({
                                       }
                                       className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                                         isSelected
-                                          ? 'bg-[#FF6B00] text-white border-[#FF6B00]'
+                                          ? 'bg-[#46D5D4] text-[#0F172A] border-[#46D5D4]'
                                           : variantSoldOut
-                                          ? 'bg-[#0F172A] text-[#94A3B8] border-[#334155] line-through opacity-60'
-                                          : 'bg-[#0F172A] text-[#F8FAFC] border-[#334155] hover:border-[#FF6B00]'
+                                          ? 'bg-slate-50 dark:bg-[#10192D] text-slate-600 dark:text-[#94A3B8] border-slate-200 dark:border-[#334155] line-through opacity-60'
+                                          : 'bg-slate-50 dark:bg-[#10192D] text-[#1E293B] dark:text-[#F8FAFC] border-slate-200 dark:border-[#334155] hover:border-[#46D5D4]'
                                       }`}
                                     >
                                       <span>
@@ -1211,24 +1214,24 @@ export function StoreMenuView({
                           )}
                         </div>
 
-                        <div className="pt-3 mt-3 border-t border-[#334155] flex flex-wrap items-center justify-between gap-2">
+                        <div className="pt-3 mt-3 border-t border-slate-200 dark:border-[#334155] flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-baseline gap-2">
-                            <p className="text-base sm:text-lg font-bold text-[#F8FAFC] whitespace-nowrap">
-                              <span className="font-mono tabular-nums text-[#FF6B00]">
+                            <p className="text-base sm:text-lg font-bold text-[#1E293B] dark:text-[#F8FAFC] whitespace-nowrap">
+                              <span className="font-mono tabular-nums text-[#FF7100]">
                                 {effectivePrice}
                               </span>{' '}
-                              <span className="text-xs sm:text-sm font-semibold text-[#94A3B8]">
+                              <span className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-[#94A3B8]">
                                 ج.م
                               </span>
                             </p>
                             {isFlashActive ? (
-                              <span className="text-xs text-[#94A3B8] line-through font-mono tabular-nums">
+                              <span className="text-xs text-slate-600 dark:text-[#94A3B8] line-through font-mono tabular-nums">
                                 {basePrice} ج.م
                               </span>
                             ) : (
                               product.originalValueEgp &&
                               product.originalValueEgp > effectivePrice && (
-                                <span className="text-xs text-[#94A3B8] line-through font-mono tabular-nums">
+                                <span className="text-xs text-slate-600 dark:text-[#94A3B8] line-through font-mono tabular-nums">
                                   {product.originalValueEgp} ج.م
                                 </span>
                               )
@@ -1256,7 +1259,7 @@ export function StoreMenuView({
                                       1
                                     )
                                   }
-                                  className="py-2 px-2.5 rounded-xl bg-[#0F172A] border border-[#334155] hover:border-[#FF6B00] text-[#F8FAFC] text-[11px] font-bold cursor-pointer whitespace-nowrap"
+                                  className="py-2 px-2.5 rounded-xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4] text-[#1E293B] dark:text-[#F8FAFC] text-[11px] font-bold cursor-pointer whitespace-nowrap"
                                 >
                                   + للسلة الجماعية
                                 </button>
@@ -1266,7 +1269,7 @@ export function StoreMenuView({
                               <button
                                 type="button"
                                 disabled
-                                className="py-2 px-3.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#94A3B8] text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-not-allowed"
+                                className="py-2 px-3.5 rounded-xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] text-slate-600 dark:text-[#94A3B8] text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-not-allowed"
                               >
                                 <Lock
                                   className="w-3.5 h-3.5"
@@ -1278,26 +1281,26 @@ export function StoreMenuView({
                               <button
                                 type="button"
                                 disabled
-                                className="py-2 px-3.5 rounded-xl bg-rose-950/50 border border-rose-500/40 text-rose-300 text-xs font-bold whitespace-nowrap shrink-0 cursor-not-allowed"
+                                className="py-2 px-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs font-bold whitespace-nowrap shrink-0 cursor-not-allowed"
                               >
                                 نفدت الكمية
                               </button>
                             ) : qty > 0 ? (
-                              <div className="inline-flex items-center gap-1.5 bg-[#0F172A] border border-[#334155] rounded-2xl p-1 shrink-0">
+                              <div className="inline-flex items-center gap-1.5 bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] rounded-2xl p-1 shrink-0">
                                 <button
                                   type="button"
                                   onClick={() =>
                                     onUpdateCartQuantity(cartEntryKey, -1)
                                   }
                                   aria-label={`تقليل كمية ${product.name}`}
-                                  className="w-8 h-8 rounded-xl bg-[#1E293B] border border-[#334155] flex items-center justify-center text-[#F8FAFC] cursor-pointer"
+                                  className="w-8 h-8 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] flex items-center justify-center text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer"
                                 >
                                   <Minus
                                     className="w-3.5 h-3.5"
                                     aria-hidden="true"
                                   />
                                 </button>
-                                <span className="w-6 text-center font-mono font-bold text-xs sm:text-sm text-[#F8FAFC] tabular-nums">
+                                <span className="w-6 text-center font-mono font-bold text-xs sm:text-sm text-[#1E293B] dark:text-[#F8FAFC] tabular-nums">
                                   {qty}
                                 </span>
                                 <button
@@ -1311,7 +1314,7 @@ export function StoreMenuView({
                                     )
                                   }
                                   aria-label={`زيادة كمية ${product.name}`}
-                                  className="w-8 h-8 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] disabled:opacity-45 text-white flex items-center justify-center cursor-pointer"
+                                  className="w-8 h-8 rounded-xl bg-[#46D5D4] hover:bg-[#32B8B7] disabled:opacity-45 text-[#0F172A] flex items-center justify-center cursor-pointer"
                                 >
                                   <Plus
                                     className="w-3.5 h-3.5"
@@ -1330,7 +1333,7 @@ export function StoreMenuView({
                                   )
                                 }
                                 aria-label={`إضافة ${product.name} إلى السلة`}
-                                className="py-2 px-4 rounded-xl bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.96] text-white text-xs sm:text-sm font-bold inline-flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+                                className="py-2 px-4 rounded-xl bg-[#46D5D4] hover:bg-[#32B8B7] active:scale-[0.96] text-[#0F172A] text-xs sm:text-sm font-extrabold inline-flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
                               >
                                 <span>إضافة</span>
                                 <Plus
@@ -1352,15 +1355,15 @@ export function StoreMenuView({
 
         {/* Customer Reviews Section (/reviews) */}
         {reviews.length > 0 && (
-          <section className="rounded-2xl bg-[#1E293B] border border-[#334155] p-6 space-y-5">
+          <section className="rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-6 space-y-5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <MessageSquareQuote className="w-5 h-5 text-[#FF6B00]" />
-                <h2 className="text-lg sm:text-xl font-bold text-[#F8FAFC]">
+                <MessageSquareQuote className="w-5 h-5 text-[#FF7100]" />
+                <h2 className="text-lg sm:text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                   آراء وتقييمات عملاء إدكاوي
                 </h2>
               </div>
-              <span className="text-xs font-semibold text-[#94A3B8] tabular-nums">
+              <span className="text-xs font-semibold text-slate-600 dark:text-[#94A3B8] tabular-nums">
                 {reviews.length} تقييم موثق
               </span>
             </div>
@@ -1369,10 +1372,10 @@ export function StoreMenuView({
               {reviews.slice(0, 6).map((rev) => (
                 <div
                   key={rev.id}
-                  className="rounded-2xl bg-[#0F172A] p-4 border border-[#334155] space-y-2"
+                  className="rounded-2xl bg-slate-50 dark:bg-[#10192D] p-4 border border-slate-200 dark:border-[#334155] space-y-2"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-bold text-[#F8FAFC]">
+                    <span className="text-sm font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                       {rev.customerName}
                     </span>
                     <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-400 tabular-nums">
@@ -1381,13 +1384,34 @@ export function StoreMenuView({
                     </span>
                   </div>
                   {rev.comment ? (
-                    <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
                       {rev.comment}
                     </p>
                   ) : (
-                    <p className="text-xs text-[#94A3B8]">
+                    <p className="text-xs text-slate-600 dark:text-[#94A3B8]">
                       تقييم بالنجوم بعد إتمام التوصيل
                     </p>
+                  )}
+                  {Array.isArray(rev.photoUrls) && rev.photoUrls.length > 0 && (
+                    <div className="pt-2 flex flex-wrap gap-2">
+                      {rev.photoUrls.slice(0, 3).map((photoUrl, pIdx) => (
+                        <button
+                          key={`${rev.id}-photo-${pIdx}`}
+                          type="button"
+                          onClick={() => setLightboxPhotoUrl(photoUrl)}
+                          className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4] cursor-pointer transition-transform hover:scale-105 shrink-0"
+                          aria-label={`تكبير صورة تقييم ${rev.customerName}`}
+                        >
+                          <ResilientImage
+                            src={photoUrl}
+                            alt={`صورة الطلب من ${rev.customerName}`}
+                            fallbackLabel="صورة التقييم"
+                            compact
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               ))}
@@ -1399,37 +1423,37 @@ export function StoreMenuView({
         {(store.taxCertificateNumber || store.commercialRegisterNumber) && (
           <section
             aria-label="البيانات القانونية والضريبية الموثّقة للمتجر"
-            className="rounded-2xl bg-[#1E293B] border border-[#334155] p-6 space-y-4"
+            className="rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] p-6 space-y-4"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-[#FF6B00]/15 border border-[#FF6B00]/30 text-[#FF6B00] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-[#FF7100]/15 border border-[#FF7100]/30 text-[#FF7100] flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-[#F8FAFC]">
+                  <h2 className="text-base sm:text-lg font-bold text-[#1E293B] dark:text-[#F8FAFC]">
                     البيانات القانونية والضريبية الموثّقة للمتجر
                   </h2>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-slate-600 dark:text-[#94A3B8]">
                     نشاط تجاري موثّق ومعتمد رسمياً لدى إدارة منصة إدكاوي
                   </p>
                 </div>
               </div>
-              <span className="px-3 py-1.5 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-xs font-bold text-emerald-300">
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-500/40 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                 متجر موثّق قانونياً
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {store.taxCertificateNumber && (
-                <div className="rounded-2xl bg-[#0F172A] border border-[#334155] p-4 flex items-center justify-between gap-3">
+                <div className="rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] p-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-[#94A3B8]">
+                    <p className="text-xs font-semibold text-slate-600 dark:text-[#94A3B8]">
                       الرقم الضريبي (الشهادة الضريبية)
                     </p>
                     <p
                       dir="ltr"
-                      className="text-sm sm:text-base font-mono font-bold text-[#F8FAFC] tabular-nums text-left mt-0.5 truncate"
+                      className="text-sm sm:text-base font-mono font-bold text-[#1E293B] dark:text-[#F8FAFC] tabular-nums text-left mt-0.5 truncate"
                     >
                       {store.taxCertificateNumber}
                     </p>
@@ -1442,7 +1466,7 @@ export function StoreMenuView({
                         .catch(() => {});
                     }}
                     aria-label="نسخ الرقم الضريبي"
-                    className="p-2 rounded-xl bg-[#1E293B] border border-[#334155] hover:border-[#FF6B00] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer shrink-0"
+                    className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4] text-slate-600 dark:text-[#94A3B8] hover:text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer shrink-0"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -1450,14 +1474,14 @@ export function StoreMenuView({
               )}
 
               {store.commercialRegisterNumber && (
-                <div className="rounded-2xl bg-[#0F172A] border border-[#334155] p-4 flex items-center justify-between gap-3">
+                <div className="rounded-2xl bg-slate-50 dark:bg-[#10192D] border border-slate-200 dark:border-[#334155] p-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-[#94A3B8]">
+                    <p className="text-xs font-semibold text-slate-600 dark:text-[#94A3B8]">
                       رقم السجل التجاري
                     </p>
                     <p
                       dir="ltr"
-                      className="text-sm sm:text-base font-mono font-bold text-[#F8FAFC] tabular-nums text-left mt-0.5 truncate"
+                      className="text-sm sm:text-base font-mono font-bold text-[#1E293B] dark:text-[#F8FAFC] tabular-nums text-left mt-0.5 truncate"
                     >
                       {store.commercialRegisterNumber}
                     </p>
@@ -1470,7 +1494,7 @@ export function StoreMenuView({
                         .catch(() => {});
                     }}
                     aria-label="نسخ رقم السجل التجاري"
-                    className="p-2 rounded-xl bg-[#1E293B] border border-[#334155] hover:border-[#FF6B00] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer shrink-0"
+                    className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] hover:border-[#46D5D4] text-slate-600 dark:text-[#94A3B8] hover:text-[#1E293B] dark:text-[#F8FAFC] cursor-pointer shrink-0"
                   >
                     <Copy className="w-4 h-4" />
                   </button>

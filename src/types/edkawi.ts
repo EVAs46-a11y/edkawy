@@ -267,6 +267,11 @@ export interface StoreRecord {
   commercialRegisterNumber?: string;
   commercialRegisterImageUrl?: string;
   taxCertificateNumber?: string;
+  commissionRate?: number;
+  ownerName?: string;
+  phone?: string;
+  pausedReason?: string;
+  suspended?: boolean;
   referredByAgentId?: string;
   referredByCode?: string;
   createdBy: string;
@@ -481,6 +486,14 @@ export interface OrderRecord {
   isReviewed?: boolean;
   pointsEarned?: number;
   pointsAwarded?: boolean;
+  commissionRate?: number;
+  commissionAmount?: number;
+  restaurantNet?: number;
+  courierDeliveryCompensation?: number;
+  freeDeliveryFundedByEdkawy?: boolean;
+  settlementId?: string;
+  treasuryReceiptId?: string;
+  isFinancialSettled?: boolean;
   notes: string;
   createdAtIso: string;
   updatedAtIso?: string;
@@ -526,6 +539,11 @@ export interface DispatchTicketRecord {
   cancelledByCourierIds?: string[];
   rejectedBy?: string[];
   isTestSimulation?: boolean;
+  commissionRate?: number;
+  commissionAmount?: number;
+  restaurantNet?: number;
+  courierDeliveryCompensation?: number;
+  freeDeliveryFundedByEdkawy?: boolean;
   createdAtIso: string;
   updatedAtIso: string;
 }
@@ -711,6 +729,7 @@ export interface ReviewRecord {
   storeRating: number;
   courierRating?: number;
   comment: string;
+  photoUrls?: string[];
   createdAtIso: string;
 }
 
@@ -723,6 +742,7 @@ export interface ReviewSubmitInput {
   storeRating: number;
   courierRating?: number;
   comment?: string;
+  photoUrls?: string[];
 }
 
 export type AppNotificationType = 'order_update' | 'promo' | 'system';
@@ -774,6 +794,9 @@ export interface CampaignRecord {
   startHour?: number;
   endHour?: number;
   rewardPoints?: number;
+  isFlashDeal?: boolean;
+  occasionTag?: string;
+  endsAtIso?: string;
   imageUrl: string;
   isActive: boolean;
   createdBy: string;
@@ -792,6 +815,9 @@ export interface CampaignInput {
   startHour?: number;
   endHour?: number;
   rewardPoints?: number;
+  isFlashDeal?: boolean;
+  occasionTag?: string;
+  endsAtIso?: string;
   imageUrl: string;
   isActive: boolean;
 }
@@ -879,20 +905,26 @@ export interface AiAssistantApiResponse {
   error?: string;
 }
 
+export interface AdminSetupStatusResult {
+  ok: boolean;
+  setupRequired: boolean;
+  source: 'env' | 'initial_setup' | 'unconfigured';
+  adminEmail: string;
+}
+
 export interface AdminOtpRequestResult {
   ok: boolean;
-  delivery?: 'edkawy_mail' | 'gmail' | 'server_otp_fallback';
+  delivery?: 'edkawy_mail' | 'gmail';
   recipient?: string;
   expiresInSeconds?: number;
-  fallbackOtpCode?: string;
-  smtpSetupHint?: string;
+  smtpConfigured?: boolean;
+  setupRequired?: boolean;
   error?: string;
 }
 
 export interface AdminOtpVerifyResult {
   ok: boolean;
   adminEmail?: string;
-  adminBootstrapGate?: string;
   verifiedAt?: string;
   error?: string;
 }
@@ -924,7 +956,38 @@ export type ActiveView =
   | 'orders'
   | 'account';
 
+export type ProfileSubRoute =
+  | 'hub'
+  | 'addresses'
+  | 'orders'
+  | 'wallet'
+  | 'favorites'
+  | 'loyalty'
+  | 'support'
+  | 'settings';
+
 export type ActiveTab = 'stores' | 'cart' | 'orders' | 'account';
+
+export interface DemandForecastResult {
+  demandLevel: 'منخفض' | 'متوسط' | 'مرتفع' | 'ذروة';
+  peakWindowLabel: string;
+  hotNeighborhoods: string[];
+  storeAlertMessage: string;
+  courierAlertMessage: string;
+  recommendedExtraCouriers: number;
+}
+
+export interface SmartPrepTimeResult {
+  estimatedMinutes: number;
+  confidenceLabel: string;
+  rationale: string;
+}
+
+export interface DriverAiAssistantResult {
+  reply: string;
+  suggestedPriorityZone?: string;
+  earningsTip?: string;
+}
 
 export interface PaymentMethodsConfig {
   cash: boolean;
@@ -935,6 +998,8 @@ export interface PaymentMethodsConfig {
 export interface SystemMaintenanceConfig {
   maintenanceMode: boolean;
   maintenanceMessage: string;
+  registrationMode?: boolean;
+  registrationMessage?: string;
   surgeEnabled?: boolean;
   surgeMultiplier?: number;
   paymentMethods?: PaymentMethodsConfig;
@@ -1035,10 +1100,9 @@ export interface SupportMessageRecord {
 
 export interface EmailVerificationRequestResult {
   ok: boolean;
-  delivery?: 'smtp' | 'firebase_link_fallback' | string;
+  delivery?: 'smtp' | string;
   sentViaSmtp?: boolean;
   maskedEmail?: string;
-  fallbackOtpCode?: string;
   digits?: number;
   retryAfterSeconds?: number;
   lockedUntilIso?: string;
@@ -1179,7 +1243,13 @@ export type AuditActionType =
   | 'update_user_email'
   | 'approve_wallet_topup'
   | 'reject_wallet_topup'
-  | 'update_system_settings';
+  | 'update_system_settings'
+  | 'update_store_commission'
+  | 'update_store_details'
+  | 'treasury_handover'
+  | 'pay_courier_dues'
+  | 'settle_restaurant'
+  | 'resolve_financial_exception';
 
 export interface AuditLogRecord {
   id: string;
@@ -1517,5 +1587,166 @@ export interface LiveEventRecord {
   eventType?: 'new_order' | 'promo' | 'delivery';
   createdAtIso: string;
 }
+
+/* ============================================================================
+ * EDKAWY FINANCIAL POLICY (86% STORE / 14% EDKAWY / 100% COURIER >= 15 EGP)
+ * ========================================================================== */
+
+export interface DriverWalletRecord {
+  courierId: string;
+  courierName: string;
+  collectionCustody: number;
+  courierDues: number;
+  handedOverAmount: number;
+  totalDuesPaid: number;
+  totalOrdersDelivered: number;
+  lastHandoverAtIso?: string;
+  lastDuesPaidAtIso?: string;
+  updatedAtIso: string;
+}
+
+export type FinancialTransactionType =
+  | 'order_collection'
+  | 'courier_earning'
+  | 'edkawy_commission'
+  | 'restaurant_payable'
+  | 'cash_handover'
+  | 'courier_payout'
+  | 'restaurant_settlement'
+  | 'exception_adjustment';
+
+export interface FinancialTransactionRecord {
+  id: string;
+  type: FinancialTransactionType;
+  orderId?: string;
+  storeId?: string;
+  storeOwnerId?: string;
+  storeName?: string;
+  courierId?: string;
+  courierName?: string;
+  receiptId?: string;
+  settlementId?: string;
+  amount: number;
+  subtotalAmount?: number;
+  commissionAmount?: number;
+  restaurantNetAmount?: number;
+  deliveryFeeAmount?: number;
+  notes: string;
+  isTestSimulation?: boolean;
+  createdBy: string;
+  createdAtIso: string;
+}
+
+export interface TreasuryReceiptRecord {
+  id: string;
+  receiptNumber: string;
+  courierId: string;
+  courierName: string;
+  ordersCount: number;
+  orderIds?: string[];
+  expectedAmount: number;
+  actualAmount: number;
+  varianceAmount: number;
+  courierDuesSnapshot: number;
+  duesPaidSeparately?: number;
+  receivedByUid: string;
+  receivedByName: string;
+  notes: string;
+  createdAtIso: string;
+}
+
+export type RestaurantSettlementStatus = 'pending_review' | 'paid' | 'disputed';
+
+export type RestaurantSettlementMethod =
+  | 'vodafone_cash'
+  | 'instapay'
+  | 'bank_transfer'
+  | 'cash_at_hq';
+
+export interface RestaurantSettlementRecord {
+  id: string;
+  storeId: string;
+  storeOwnerId?: string;
+  storeName: string;
+  settlementDateKey: string;
+  cutoffLabel: string;
+  ordersCount: number;
+  orderIds: string[];
+  grossProductsSales: number;
+  commissionRate: number;
+  edkawyCommission: number;
+  restaurantNetPayable: number;
+  deliveryFeesTotal: number;
+  status: RestaurantSettlementStatus;
+  paymentMethod?: RestaurantSettlementMethod;
+  transferReference?: string;
+  paidAtIso?: string;
+  paidByUid?: string;
+  paidByName?: string;
+  notes?: string;
+  createdAtIso: string;
+  updatedAtIso: string;
+}
+
+export type FinancialExceptionType =
+  | 'cancelled_before_prep'
+  | 'store_rejected'
+  | 'customer_refused_door'
+  | 'courier_failed_delivery'
+  | 'cash_shortage'
+  | 'wrong_order';
+
+export type FinancialExceptionStatus =
+  | 'pending_review'
+  | 'resolved_no_deduction'
+  | 'resolved_with_adjustment';
+
+export type ExceptionResponsibleParty =
+  | 'customer'
+  | 'store'
+  | 'courier'
+  | 'edkawy'
+  | 'shared';
+
+export interface FinancialExceptionRecord {
+  id: string;
+  orderId?: string;
+  receiptId?: string;
+  storeId?: string;
+  storeOwnerId?: string;
+  storeName?: string;
+  courierId?: string;
+  courierName?: string;
+  exceptionType: FinancialExceptionType;
+  disputedAmount: number;
+  responsibleParty?: ExceptionResponsibleParty;
+  holdSettlement: boolean;
+  status: FinancialExceptionStatus;
+  description: string;
+  adminResolutionNote?: string;
+  resolvedByUid?: string;
+  resolvedByName?: string;
+  createdBy: string;
+  createdAtIso: string;
+  resolvedAtIso?: string;
+}
+
+export interface FounderFinancialKpis {
+  totalStoreSales: number;
+  totalEdkawyCommissions: number;
+  totalDeliveryFees: number;
+  totalCourierDues: number;
+  cashInTreasury: number;
+  totalHandedOverGross: number;
+  cashHeldByCouriers: number;
+  unpaidStorePayables: number;
+  paidStoreSettlements: number;
+  cancelledOrdersCount: number;
+  cashShortageTotal: number;
+  cashVarianceNet: number;
+  deliveredOrdersCount: number;
+  pendingExceptionsCount: number;
+}
+
 
 
